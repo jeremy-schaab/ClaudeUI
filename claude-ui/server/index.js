@@ -100,7 +100,9 @@ io.on('connection', (socket) => {
           error: errorOutput,
           exitCode: code,
           durationMs: durationMs,
-          success: code === 0 && response.length > 0
+          success: code === 0 && response.length > 0,
+          contextFiles: data.contextFiles || [],
+          fullStdin: messageToSend
         });
       } catch (err) {
         console.error('Failed to log CLI call to database:', err);
@@ -130,7 +132,9 @@ io.on('connection', (socket) => {
           error: err.message,
           exitCode: -1,
           durationMs: durationMs,
-          success: false
+          success: false,
+          contextFiles: data.contextFiles || [],
+          fullStdin: messageToSend
         });
       } catch (dbErr) {
         console.error('Failed to log CLI call error to database:', dbErr);

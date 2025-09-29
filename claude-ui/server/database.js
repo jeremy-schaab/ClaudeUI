@@ -68,6 +68,25 @@ try {
   }
 }
 
+// Migration: Add context_files and full_stdin columns to cli_calls table
+try {
+  db.exec(`ALTER TABLE cli_calls ADD COLUMN context_files TEXT`);
+  console.log('Added context_files column to cli_calls table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('context_files column may already exist');
+  }
+}
+
+try {
+  db.exec(`ALTER TABLE cli_calls ADD COLUMN full_stdin TEXT`);
+  console.log('Added full_stdin column to cli_calls table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('full_stdin column may already exist');
+  }
+}
+
 console.log('Database initialized at:', dbPath);
 
 // Prepared statements for conversations
@@ -109,8 +128,10 @@ const insertCliCall = db.prepare(`
     error,
     exit_code,
     duration_ms,
-    success
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    success,
+    context_files,
+    full_stdin
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const getAllCalls = db.prepare('SELECT * FROM cli_calls ORDER BY timestamp DESC');
@@ -227,7 +248,9 @@ function logCliCall(data) {
       data.error || '',
       data.exitCode || null,
       data.durationMs || null,
-      data.success ? 1 : 0
+      data.success ? 1 : 0,
+      data.contextFiles ? JSON.stringify(data.contextFiles) : null,
+      data.fullStdin || null
     );
     return result.lastInsertRowid;
   } catch (err) {

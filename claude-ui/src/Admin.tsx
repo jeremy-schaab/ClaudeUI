@@ -32,6 +32,8 @@ interface CliCall {
   exit_code: number
   duration_ms: number
   success: boolean
+  context_files?: string
+  full_stdin?: string
 }
 
 interface Setting {
@@ -395,8 +397,26 @@ function Admin({ onBackToChat }: AdminProps) {
               </div>
             </div>
 
+            {selectedCall.context_files && (
+              <div className="detail-section">
+                <h3>Context Files</h3>
+                <div className="info-box">
+                  <pre className="code-block">{JSON.stringify(JSON.parse(selectedCall.context_files), null, 2)}</pre>
+                </div>
+              </div>
+            )}
+
+            {selectedCall.full_stdin && (
+              <div className="detail-section">
+                <h3>Full CLI Input (stdin)</h3>
+                <div className="info-box">
+                  <pre className="code-block">{selectedCall.full_stdin}</pre>
+                </div>
+              </div>
+            )}
+
             <div className="detail-section">
-              <h3>User Message</h3>
+              <h3>User Message (Original)</h3>
               <div className="message-box">{selectedCall.user_message}</div>
             </div>
 
