@@ -191,9 +191,9 @@ app.get('/api/conversations/:id', (req, res) => {
 
 app.post('/api/conversations', (req, res) => {
   try {
-    const { title } = req.body;
-    const id = createConversation(title);
-    res.json({ id, title });
+    const { title, selectedFiles, model } = req.body;
+    const id = createConversation(title, selectedFiles, model);
+    res.json({ id, title, selectedFiles, model });
   } catch (err) {
     console.error('Error creating conversation:', err);
     res.status(500).json({ error: 'Failed to create conversation' });
@@ -202,8 +202,8 @@ app.post('/api/conversations', (req, res) => {
 
 app.put('/api/conversations/:id', (req, res) => {
   try {
-    const { title } = req.body;
-    updateConversationTitle(req.params.id, title);
+    const { title, selectedFiles, model } = req.body;
+    updateConversationTitle(req.params.id, title, selectedFiles, model);
     res.json({ success: true });
   } catch (err) {
     console.error('Error updating conversation:', err);

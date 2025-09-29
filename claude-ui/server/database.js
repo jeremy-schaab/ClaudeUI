@@ -87,15 +87,35 @@ try {
   }
 }
 
+// Migration: Add selected_files column to conversations table
+try {
+  db.exec(`ALTER TABLE conversations ADD COLUMN selected_files TEXT`);
+  console.log('Added selected_files column to conversations table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('selected_files column may already exist');
+  }
+}
+
+// Migration: Add model column to conversations table
+try {
+  db.exec(`ALTER TABLE conversations ADD COLUMN model TEXT`);
+  console.log('Added model column to conversations table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('model column may already exist');
+  }
+}
+
 console.log('Database initialized at:', dbPath);
 
 // Prepared statements for conversations
 const insertConversation = db.prepare(`
-  INSERT INTO conversations (title) VALUES (?)
+  INSERT INTO conversations (title, selected_files, model) VALUES (?, ?, ?)
 `);
 
 const updateConversation = db.prepare(`
-  UPDATE conversations SET updated_at = CURRENT_TIMESTAMP, title = ? WHERE id = ?
+  UPDATE conversations SET updated_at = CURRENT_TIMESTAMP, title = ?, selected_files = ?, model = ? WHERE id = ?
 `);
 
 const getConversationById = db.prepare('SELECT * FROM conversations WHERE id = ?');
@@ -147,9 +167,10 @@ const upsertSetting = db.prepare(`
 const getAllSettings = db.prepare('SELECT * FROM settings');
 
 // Conversation functions
-function createConversation(title = 'Untitled') {
+function createConversation(title = 'Untitled', selectedFiles = null, model = null) {
   try {
-    const result = insertConversation.run(title);
+    const filesJson = selectedFiles ? JSON.stringify(selectedFiles) : null;
+    const result = insertConversation.run(title, filesJson, model);
     return result.lastInsertRowid;
   } catch (err) {
     console.error('Error creating conversation:', err);
@@ -157,9 +178,10 @@ function createConversation(title = 'Untitled') {
   }
 }
 
-function updateConversationTitle(id, title) {
+function updateConversationTitle(id, title, selectedFiles = null, model = null) {
   try {
-    return updateConversation.run(title, id);
+    const filesJson = selectedFiles ? JSON.stringify(selectedFiles) : null;
+    return updateConversation.run(title, filesJson, model, id);
   } catch (err) {
     console.error('Error updating conversation:', err);
     throw err;
@@ -329,6 +351,10 @@ function initializeDefaultSettings() {
     if (!getSettingValue('CLI_ARGS')) {
       setSetting('CLI_ARGS', 'chat');
       console.log('Initialized CLI_ARGS setting to: chat');
+    }
+    if (!getSettingValue('DEFAULT_MODEL')) {
+      setSetting('DEFAULT_MODEL', 'claude-sonnet-4-5-20250929');
+      console.log('Initialized DEFAULT_MODEL setting to: claude-sonnet-4-5-20250929');
     }
   } catch (err) {
     console.error('Error initializing default settings:', err);

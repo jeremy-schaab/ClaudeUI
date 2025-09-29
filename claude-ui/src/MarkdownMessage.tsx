@@ -15,7 +15,7 @@ function MarkdownMessage({ content }: MarkdownMessageProps) {
         remarkPlugins={[remarkGfm]}
         components={{
         code(props: any) {
-          const {node, inline, className, children, ...rest} = props
+          const {inline, className, children} = props
           const match = /language-(\w+)/.exec(className || '')
           const language = match ? match[1] : ''
 

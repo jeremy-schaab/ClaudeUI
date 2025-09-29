@@ -443,7 +443,11 @@ body {
 }
 
 .model-selector {
+  position: relative;
   margin-left: auto;
+}
+
+.model-selector-btn {
   padding: 6px 12px;
   background-color: #ffffff;
   border: 1px solid #e7e5e4;
@@ -458,9 +462,57 @@ body {
   transition: all 0.15s;
 }
 
-.model-selector:hover {
+.model-selector-btn:hover {
   background-color: #f5f5f4;
   border-color: #d6d3d1;
+}
+
+.model-dropdown {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  min-width: 300px;
+  background-color: #ffffff;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  z-index: 1000;
+}
+
+.model-option {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.model-option:hover {
+  background-color: #f5f5f4;
+}
+
+.model-option.selected {
+  background-color: #f0f9ff;
+}
+
+.model-option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.model-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.model-description {
+  font-size: 12px;
+  color: #78716c;
+  line-height: 1.4;
 }
 
 .send-btn-new {

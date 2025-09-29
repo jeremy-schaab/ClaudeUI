@@ -27,6 +27,13 @@ interface FileNode {
   children?: FileNode[]
 }
 
+const MODELS = [
+  { id: 'claude-opus-4-20250514', name: 'Opus 4', description: 'Powerful, large model for complex challenges' },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', description: 'Smart, efficient model for everyday use' },
+  { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4', description: 'Balanced performance and speed' },
+  { id: 'claude-haiku-4-20250514', name: 'Haiku 4', description: 'Fast, lightweight model for simple tasks' }
+]
+
 function ChatView() {
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>()
   const navigate = useNavigate()
@@ -46,6 +53,8 @@ function ChatView() {
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [selectedFile, setSelectedFile] = useState<{ path: string, content: string } | null>(null)
   const [selectedContext, setSelectedContext] = useState<Set<string>>(new Set())
+  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5-20250929')
+  const [showModelDropdown, setShowModelDropdown] = useState(false)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -54,6 +63,21 @@ function ChatView() {
   useEffect(() => {
     conversationIdRef.current = currentConversationId
   }, [currentConversationId])
+
+  // Load default model from settings on mount
+  useEffect(() => {
+    const loadDefaultModel = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/settings/DEFAULT_MODEL')
+        if (response.data.value) {
+          setSelectedModel(response.data.value)
+        }
+      } catch (err) {
+        console.error('Failed to load default model:', err)
+      }
+    }
+    loadDefaultModel()
+  }, [])
 
   // Load recent conversations on mount (only visible ones)
   useEffect(() => {
@@ -112,7 +136,7 @@ function ChatView() {
     }
   }
 
-  const toggleContextSelection = (path: string, e: React.MouseEvent) => {
+  const toggleContextSelection = (path: string, e: React.MouseEvent | React.ChangeEvent) => {
     e.stopPropagation()
     setSelectedContext(prev => {
       const newSet = new Set(prev)
@@ -257,7 +281,12 @@ function ChatView() {
     if (!currentConversationId) {
       try {
         const title = input.substring(0, 50)
-        const response = await axios.post('http://localhost:3001/api/conversations', { title })
+        const selectedFilesArray = Array.from(selectedContext)
+        const response = await axios.post('http://localhost:3001/api/conversations', {
+          title,
+          selectedFiles: selectedFilesArray,
+          model: selectedModel
+        })
         setCurrentConversationId(response.data.id)
 
         // Save user message to database
@@ -274,6 +303,14 @@ function ChatView() {
         await axios.post(`http://localhost:3001/api/conversations/${currentConversationId}/messages`, {
           role: 'user',
           content: input
+        })
+
+        // Update conversation with current selected files and model
+        const selectedFilesArray = Array.from(selectedContext)
+        await axios.put(`http://localhost:3001/api/conversations/${currentConversationId}`, {
+          title: recentChats.find(c => c.id === currentConversationId.toString())?.title || 'Untitled',
+          selectedFiles: selectedFilesArray,
+          model: selectedModel
         })
       } catch (err) {
         console.error('Failed to save message:', err)
@@ -310,6 +347,7 @@ function ChatView() {
     setMessages([])
     setInput('')
     setCurrentConversationId(null)
+    setSelectedContext(new Set()) // Clear selected files for new chat
   }
 
   const handleLoadChat = async (chatId: string) => {
@@ -324,8 +362,9 @@ function ChatView() {
     if (urlConversationId && urlConversationId !== currentConversationId?.toString()) {
       const loadConversation = async () => {
         try {
-          const response = await axios.get(`http://localhost:3001/api/conversations/${urlConversationId}/messages`)
-          const loadedMessages = response.data.map((msg: any) => ({
+          // Load messages
+          const messagesResponse = await axios.get(`http://localhost:3001/api/conversations/${urlConversationId}/messages`)
+          const loadedMessages = messagesResponse.data.map((msg: any) => ({
             id: msg.id.toString(),
             role: msg.role,
             content: msg.content,
@@ -333,6 +372,20 @@ function ChatView() {
           }))
           setMessages(loadedMessages)
           setCurrentConversationId(parseInt(urlConversationId))
+
+          // Load conversation metadata including selected files and model
+          const conversationResponse = await axios.get(`http://localhost:3001/api/conversations/${urlConversationId}`)
+          if (conversationResponse.data.selected_files) {
+            try {
+              const files = JSON.parse(conversationResponse.data.selected_files)
+              setSelectedContext(new Set(files))
+            } catch (err) {
+              console.error('Failed to parse selected files:', err)
+            }
+          }
+          if (conversationResponse.data.model) {
+            setSelectedModel(conversationResponse.data.model)
+          }
         } catch (err) {
           console.error('Failed to load chat from URL:', err)
           // If conversation doesn't exist, redirect to home
@@ -745,10 +798,40 @@ function ChatView() {
                 </button>
               )}
               <div className="model-selector">
-                <span>Sonnet 4.5</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
+                <button
+                  type="button"
+                  className="model-selector-btn"
+                  onClick={() => setShowModelDropdown(!showModelDropdown)}
+                >
+                  <span>{MODELS.find(m => m.id === selectedModel)?.name || 'Sonnet 4.5'}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                {showModelDropdown && (
+                  <div className="model-dropdown">
+                    {MODELS.map(model => (
+                      <div
+                        key={model.id}
+                        className={`model-option ${selectedModel === model.id ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedModel(model.id)
+                          setShowModelDropdown(false)
+                        }}
+                      >
+                        <div className="model-option-header">
+                          <span className="model-name">{model.name}</span>
+                          {selectedModel === model.id && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          )}
+                        </div>
+                        <div className="model-description">{model.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <button type="submit" disabled={!input.trim() || isProcessing || !isConnected} className="send-btn-new">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
