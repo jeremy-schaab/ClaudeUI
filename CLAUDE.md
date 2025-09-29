@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A local web-based chat interface for Claude CLI that mimics the Claude.ai website experience. The application consists of a React frontend and Node.js backend that communicates with Claude CLI via child process execution.
+ClaudeUI is a local web-based chat interface for Claude CLI that mimics the Claude.ai website experience. The application provides a modern, responsive chat UI with conversation history, markdown rendering, syntax highlighting, and an admin panel for monitoring CLI interactions. It consists of a React frontend and Node.js backend that communicates with Claude CLI via child process execution.
 
 ## Architecture
 
@@ -16,10 +16,27 @@ A local web-based chat interface for Claude CLI that mimics the Claude.ai websit
 
 ### Key Components
 
+#### Frontend (claude-ui/)
 - **App.tsx**: Main chat interface with Socket.IO client, conversation management, and UI state
+  - Real-time message streaming
+  - Markdown rendering with syntax highlighting
+  - Conversation switching and management
+  - Settings panel with API key configuration
 - **Admin.tsx**: Admin panel for viewing conversation history and CLI call logs
-- **server/index.js**: Express server with Socket.IO for real-time communication and REST API endpoints
-- **server/database.js**: SQLite database layer using better-sqlite3 for conversations, messages, and CLI call logging
+  - Conversation history viewer
+  - CLI call audit trail with performance metrics
+  - Database inspection tools
+
+#### Backend (claude-ui/server/)
+- **index.js**: Express server with Socket.IO for real-time communication and REST API endpoints
+  - Socket.IO event handlers for message streaming
+  - REST API for conversations, messages, and CLI call logs
+  - Claude CLI process spawning and management
+  - CORS configuration for development
+- **database.js**: SQLite database layer using better-sqlite3
+  - Conversation and message persistence
+  - CLI call logging with performance metrics
+  - Soft and hard delete functionality
 
 ### Database Schema
 
@@ -33,6 +50,9 @@ Three main tables stored in `server/claude-cli.db`:
 ### Initial Setup
 
 ```bash
+# Navigate to claude-ui directory
+cd claude-ui
+
 # Install frontend dependencies
 npm install
 
@@ -48,16 +68,19 @@ cd ..
 
 Terminal 1 - Backend:
 ```bash
-cd server
+cd claude-ui/server
 npm start
 ```
 Server runs on http://localhost:3001
 
 Terminal 2 - Frontend:
 ```bash
+cd claude-ui
 npm run dev
 ```
 Frontend runs on http://localhost:5173
+
+Access the application at http://localhost:5173
 
 ### Build and Lint
 
@@ -109,8 +132,31 @@ npm preview
 - Claude CLI installed and available in system PATH
 - Claude CLI must be configured before running the application
 
+## Features
+
+- 🎨 Modern chat interface mimicking Claude.ai
+- 💬 Real-time message streaming via Socket.IO
+- 📝 Markdown rendering with syntax highlighting (react-markdown + react-syntax-highlighter)
+- 💾 Conversation persistence with SQLite
+- 📊 Admin panel for monitoring CLI calls and performance
+- 🔄 Conversation history and switching
+- ⚙️ Settings panel for API key management
+- 🗑️ Soft and hard delete for conversations
+- 🎯 TypeScript support for type safety
+
+## Testing
+
+The project includes Playwright tests for end-to-end testing:
+
+```bash
+cd claude-ui/tests
+npx playwright test
+```
+
 ## Common Issues
 
 - **"Disconnected" status**: Backend server not running on port 3001
 - **"Failed to start Claude CLI"**: Claude CLI not in PATH or not properly configured
 - **Port conflicts**: Change ports in both backend server and frontend Socket.IO connection URL
+- **Database errors**: Ensure the server directory is writable for SQLite database creation
+- **CORS issues**: Check CORS configuration in server/index.js if accessing from different origins

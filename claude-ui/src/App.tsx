@@ -137,6 +137,10 @@ function App() {
 
   // Get all file paths that should be sent as context
   const getContextFiles = (): string[] => {
+    console.log('getContextFiles called')
+    console.log('selectedContext:', Array.from(selectedContext))
+    console.log('fileTree length:', fileTree.length)
+
     const files = new Set<string>()
 
     selectedContext.forEach(path => {
@@ -153,13 +157,19 @@ function App() {
       }
 
       const node = findNode(fileTree)
+      console.log('Looking for path:', path, 'Found node:', node?.name, node?.type)
       if (node) {
         const filePaths = collectFilesFromNode(node)
+        console.log('Collected file paths:', filePaths)
         filePaths.forEach(f => files.add(f))
+      } else {
+        console.warn('Could not find node for path:', path)
       }
     })
 
-    return Array.from(files)
+    const result = Array.from(files)
+    console.log('Final context files:', result)
+    return result
   }
 
   useEffect(() => {
