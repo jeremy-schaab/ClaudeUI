@@ -3,6 +3,13 @@ import './Admin.css'
 import axios from 'axios'
 import MarkdownMessage from './MarkdownMessage'
 
+const MODELS = [
+  { id: 'claude-opus-4-20250514', name: 'Opus 4', description: 'Powerful, large model for complex challenges' },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', description: 'Smart, efficient model for everyday use' },
+  { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4', description: 'Balanced performance and speed' },
+  { id: 'claude-haiku-4-20250514', name: 'Haiku 4', description: 'Fast, lightweight model for simple tasks' }
+]
+
 interface Conversation {
   id: number
   created_at: string
@@ -34,6 +41,7 @@ interface CliCall {
   success: boolean
   context_files?: string
   full_stdin?: string
+  model?: string
 }
 
 interface Setting {
@@ -273,6 +281,7 @@ function Admin({ onBackToChat }: AdminProps) {
               <div className="call-meta">
                 <span className="duration">{formatDuration(call.duration_ms)}</span>
                 <span className="exit-code">Exit: {call.exit_code}</span>
+                {call.model && <span className="model-badge">{call.model}</span>}
               </div>
             </div>
           ))}
@@ -293,13 +302,28 @@ function Admin({ onBackToChat }: AdminProps) {
               <div key={setting.key} className="setting-item">
                 <label htmlFor={setting.key}>{setting.key}</label>
                 <div className="setting-input-group">
-                  <input
-                    id={setting.key}
-                    type="text"
-                    value={editingSettings[setting.key] || ''}
-                    onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                    className="setting-input"
-                  />
+                  {setting.key === 'DEFAULT_MODEL' ? (
+                    <select
+                      id={setting.key}
+                      value={editingSettings[setting.key] || ''}
+                      onChange={(e) => handleSettingChange(setting.key, e.target.value)}
+                      className="setting-select"
+                    >
+                      {MODELS.map(model => (
+                        <option key={model.id} value={model.id}>
+                          {model.name} - {model.description}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id={setting.key}
+                      type="text"
+                      value={editingSettings[setting.key] || ''}
+                      onChange={(e) => handleSettingChange(setting.key, e.target.value)}
+                      className="setting-input"
+                    />
+                  )}
                   <button
                     onClick={() => handleSaveSetting(setting.key)}
                     className="save-setting-btn"
@@ -314,6 +338,7 @@ function Admin({ onBackToChat }: AdminProps) {
                   {setting.key === 'CLI_ROOT' && 'The directory where CLI commands will be executed'}
                   {setting.key === 'CLI_COMMAND' && 'The CLI command to execute (e.g., claude, node)'}
                   {setting.key === 'CLI_ARGS' && 'Arguments to pass to the CLI command'}
+                  {setting.key === 'DEFAULT_MODEL' && 'The default Claude model to use for new conversations'}
                 </div>
               </div>
             ))}
@@ -380,6 +405,12 @@ function Admin({ onBackToChat }: AdminProps) {
                     {selectedCall.success ? 'Success' : 'Failed'}
                   </span>
                 </div>
+                {selectedCall.model && (
+                  <div className="detail-item">
+                    <label>Model:</label>
+                    <span className="model-text">{selectedCall.model}</span>
+                  </div>
+                )}
               </div>
             </div>
 

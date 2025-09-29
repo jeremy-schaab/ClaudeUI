@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(claude chat --help)"
+      "Bash(claude chat --help)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

@@ -97,6 +97,16 @@ try {
   }
 }
 
+// Migration: Add model column to cli_calls table
+try {
+  db.exec(`ALTER TABLE cli_calls ADD COLUMN model TEXT`);
+  console.log('Added model column to cli_calls table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('model column may already exist');
+  }
+}
+
 // Migration: Add model column to conversations table
 try {
   db.exec(`ALTER TABLE conversations ADD COLUMN model TEXT`);
@@ -150,8 +160,9 @@ const insertCliCall = db.prepare(`
     duration_ms,
     success,
     context_files,
-    full_stdin
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    full_stdin,
+    model
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const getAllCalls = db.prepare('SELECT * FROM cli_calls ORDER BY timestamp DESC');
@@ -272,7 +283,8 @@ function logCliCall(data) {
       data.durationMs || null,
       data.success ? 1 : 0,
       data.contextFiles ? JSON.stringify(data.contextFiles) : null,
-      data.fullStdin || null
+      data.fullStdin || null,
+      data.model || null
     );
     return result.lastInsertRowid;
   } catch (err) {

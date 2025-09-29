@@ -42,6 +42,7 @@ io.on('connection', (socket) => {
   socket.on('message', (data) => {
     console.log('Received message:', data.content);
     console.log('Context files:', data.contextFiles);
+    console.log('Model:', data.model);
 
     const startTime = Date.now();
 
@@ -54,6 +55,15 @@ io.on('connection', (socket) => {
 
     // Execute Claude CLI command with settings
     const args = cliArgs ? cliArgs.split(' ') : [];
+
+    // Add model parameter if provided
+    if (data.model) {
+      args.push('--model', data.model);
+      console.log('Adding --model flag:', data.model);
+    }
+
+    console.log('Final CLI args:', args);
+
     const claude = spawn(cliCommand, args, {
       shell: true,
       cwd: executionPath
@@ -102,7 +112,8 @@ io.on('connection', (socket) => {
           durationMs: durationMs,
           success: code === 0 && response.length > 0,
           contextFiles: data.contextFiles || [],
-          fullStdin: messageToSend
+          fullStdin: messageToSend,
+          model: data.model || null
         });
       } catch (err) {
         console.error('Failed to log CLI call to database:', err);
@@ -134,7 +145,8 @@ io.on('connection', (socket) => {
           durationMs: durationMs,
           success: false,
           contextFiles: data.contextFiles || [],
-          fullStdin: messageToSend
+          fullStdin: messageToSend,
+          model: data.model || null
         });
       } catch (dbErr) {
         console.error('Failed to log CLI call error to database:', dbErr);

@@ -320,7 +320,8 @@ function ChatView() {
     // Get context files and emit message
     const contextFiles = getContextFiles()
     console.log('Sending message with context files:', contextFiles)
-    socketRef.current?.emit('message', { content: input, contextFiles })
+    console.log('Sending with model:', selectedModel)
+    socketRef.current?.emit('message', { content: input, contextFiles, model: selectedModel })
     setInput('')
   }
 
