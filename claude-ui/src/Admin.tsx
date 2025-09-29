@@ -7,7 +7,8 @@ const MODELS = [
   { id: 'claude-opus-4-20250514', name: 'Opus 4', description: 'Powerful, large model for complex challenges' },
   { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', description: 'Smart, efficient model for everyday use' },
   { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4', description: 'Balanced performance and speed' },
-  { id: 'claude-haiku-4-20250514', name: 'Haiku 4', description: 'Fast, lightweight model for simple tasks' }
+  { id: 'claude-haiku-4-20250514', name: 'Haiku 4', description: 'Fast, lightweight model for simple tasks' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Haiku 3.5', description: 'Fastest available model (currently released)' }
 ]
 
 interface Conversation {

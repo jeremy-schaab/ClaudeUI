@@ -5,6 +5,10 @@ import { io, Socket } from 'socket.io-client'
 import axios from 'axios'
 import Admin from './Admin'
 import MarkdownMessage from './MarkdownMessage'
+import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import remarkGfm from 'remark-gfm'
 
 interface Message {
   id: string
@@ -53,6 +57,8 @@ function ChatView() {
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [selectedFile, setSelectedFile] = useState<{ path: string, content: string } | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editedContent, setEditedContent] = useState('')
   const [selectedContext, setSelectedContext] = useState<Set<string>>(new Set())
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5-20250929')
   const [showModelDropdown, setShowModelDropdown] = useState(false)
@@ -132,9 +138,37 @@ function ChatView() {
         params: { path: filePath }
       })
       setSelectedFile({ path: filePath, content: response.data.content })
+      setEditedContent(response.data.content)
+      setIsEditMode(false)
     } catch (err) {
       console.error('Failed to load file content:', err)
     }
+  }
+
+  const handleSaveFile = async () => {
+    if (!selectedFile) return
+
+    try {
+      await axios.put('http://localhost:3001/api/files/content', {
+        path: selectedFile.path,
+        content: editedContent
+      })
+      setSelectedFile({ ...selectedFile, content: editedContent })
+      setIsEditMode(false)
+    } catch (err) {
+      console.error('Failed to save file:', err)
+      alert('Failed to save file')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditedContent(selectedFile?.content || '')
+    setIsEditMode(false)
+  }
+
+  const getFileExtension = (path: string): string => {
+    const parts = path.split('.')
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
   }
 
   const toggleContextSelection = (path: string, e: React.MouseEvent | React.ChangeEvent) => {
@@ -571,16 +605,73 @@ function ChatView() {
               <>
                 <div className="file-viewer-header">
                   <span className="file-viewer-path">{selectedFile.path}</span>
-                  <button className="close-file-btn" onClick={() => setSelectedFile(null)}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"/>
-                      <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                  </button>
+                  <div className="file-viewer-actions">
+                    {!isEditMode ? (
+                      <button className="edit-file-btn" onClick={() => setIsEditMode(true)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button className="save-file-btn" onClick={handleSaveFile}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                          Save
+                        </button>
+                        <button className="cancel-edit-btn" onClick={handleCancelEdit}>
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                    <button className="close-file-btn" onClick={() => {
+                      setSelectedFile(null)
+                      setIsEditMode(false)
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <pre className="file-viewer-content">
-                  <code>{selectedFile.content}</code>
-                </pre>
+                <div className="file-viewer-content">
+                  {isEditMode ? (
+                    <textarea
+                      className="file-editor"
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      spellCheck={false}
+                    />
+                  ) : getFileExtension(selectedFile.path) === 'md' ? (
+                    <div className="markdown-viewer">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {selectedFile.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : getFileExtension(selectedFile.path) === 'cs' ? (
+                    <SyntaxHighlighter
+                      language="csharp"
+                      style={vscDarkPlus}
+                      showLineNumbers={true}
+                      customStyle={{
+                        margin: 0,
+                        borderRadius: 0,
+                        background: '#1e1e1e',
+                        fontSize: '13px'
+                      }}
+                    >
+                      {selectedFile.content}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <pre className="code-viewer">
+                      <code>{selectedFile.content}</code>
+                    </pre>
+                  )}
+                </div>
               </>
             ) : (
               <div className="file-viewer-empty">

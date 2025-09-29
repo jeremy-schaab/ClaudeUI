@@ -425,6 +425,42 @@ app.get('/api/files/content', (req, res) => {
   }
 });
 
+// Save file content endpoint
+app.put('/api/files/content', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const { path: filePath, content } = req.body;
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+
+    if (content === undefined) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const fullPath = path.join(rootPath, filePath);
+
+    // Security check: ensure the path is within the root directory
+    const normalizedPath = path.normalize(fullPath);
+    const normalizedRoot = path.normalize(rootPath);
+    if (!normalizedPath.startsWith(normalizedRoot)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    fs.writeFileSync(fullPath, content, 'utf8');
+    res.json({ success: true, path: filePath });
+  } catch (err) {
+    console.error('Error saving file:', err);
+    res.status(500).json({ error: 'Failed to save file' });
+  }
+});
+
 const PORT = 3001;
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
