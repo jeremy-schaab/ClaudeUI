@@ -37,6 +37,7 @@ function App() {
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [selectedFile, setSelectedFile] = useState<{ path: string, content: string } | null>(null)
+  const [selectedContext, setSelectedContext] = useState<Set<string>>(new Set())
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -103,6 +104,62 @@ function App() {
     } catch (err) {
       console.error('Failed to load file content:', err)
     }
+  }
+
+  const toggleContextSelection = (path: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedContext(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(path)) {
+        newSet.delete(path)
+      } else {
+        newSet.add(path)
+      }
+      return newSet
+    })
+  }
+
+  const clearAllContext = () => {
+    setSelectedContext(new Set())
+  }
+
+  // Recursively collect all file paths from a directory node
+  const collectFilesFromNode = (node: FileNode): string[] => {
+    if (node.type === 'file') {
+      return [node.path]
+    }
+    // For directories, collect all files from children
+    if (node.children) {
+      return node.children.flatMap(child => collectFilesFromNode(child))
+    }
+    return []
+  }
+
+  // Get all file paths that should be sent as context
+  const getContextFiles = (): string[] => {
+    const files = new Set<string>()
+
+    selectedContext.forEach(path => {
+      // Find the node in the tree
+      const findNode = (nodes: FileNode[]): FileNode | null => {
+        for (const node of nodes) {
+          if (node.path === path) return node
+          if (node.children) {
+            const found = findNode(node.children)
+            if (found) return found
+          }
+        }
+        return null
+      }
+
+      const node = findNode(fileTree)
+      if (node) {
+        const filePaths = collectFilesFromNode(node)
+        filePaths.forEach(f => files.add(f))
+      }
+    })
+
+    return Array.from(files)
   }
 
   useEffect(() => {
@@ -207,7 +264,9 @@ function App() {
       }
     }
 
-    socketRef.current?.emit('message', { content: input })
+    // Get context files and emit message
+    const contextFiles = getContextFiles()
+    socketRef.current?.emit('message', { content: input, contextFiles })
     setInput('')
   }
 
@@ -279,9 +338,17 @@ function App() {
         {node.type === 'directory' ? (
           <>
             <div
-              className="file-tree-item directory"
+              className={`file-tree-item directory ${selectedContext.has(node.path) ? 'in-context' : ''}`}
               onClick={() => toggleDirectory(node.path)}
             >
+              <input
+                type="checkbox"
+                className="file-checkbox"
+                checked={selectedContext.has(node.path)}
+                onChange={(e) => toggleContextSelection(node.path, e)}
+                onClick={(e) => e.stopPropagation()}
+                title="Include in context"
+              />
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 {expandedDirs.has(node.path) ? (
                   <polyline points="6 9 12 15 18 9"/>
@@ -302,9 +369,17 @@ function App() {
           </>
         ) : (
           <div
-            className={`file-tree-item file ${selectedFile?.path === node.path ? 'selected' : ''}`}
+            className={`file-tree-item file ${selectedFile?.path === node.path ? 'selected' : ''} ${selectedContext.has(node.path) ? 'in-context' : ''}`}
             onClick={() => handleFileClick(node.path)}
           >
+            <input
+              type="checkbox"
+              className="file-checkbox"
+              checked={selectedContext.has(node.path)}
+              onChange={(e) => toggleContextSelection(node.path, e)}
+              onClick={(e) => e.stopPropagation()}
+              title="Include in context"
+            />
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
               <polyline points="13 2 13 9 20 9"/>
@@ -378,11 +453,22 @@ function App() {
           <div className="file-tree-panel">
             <div className="file-tree-header">
               <h3>File Explorer</h3>
-              <button className="refresh-btn" onClick={loadFileTree}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                </svg>
-              </button>
+              <div className="file-tree-actions">
+                {selectedContext.size > 0 && (
+                  <button className="clear-context-btn" onClick={clearAllContext} title={`Clear ${selectedContext.size} selected`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    <span>{selectedContext.size}</span>
+                  </button>
+                )}
+                <button className="refresh-btn" onClick={loadFileTree}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="file-tree-content">
               {fileTree.length === 0 ? (
@@ -619,6 +705,15 @@ function App() {
                   <circle cx="12" cy="19" r="1"/>
                 </svg>
               </button>
+              {selectedContext.size > 0 && (
+                <button type="button" className="context-indicator" onClick={() => setCurrentView('files')} title={`${selectedContext.size} file(s) in context - click to manage`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                    <polyline points="13 2 13 9 20 9"/>
+                  </svg>
+                  <span>{selectedContext.size} in context</span>
+                </button>
+              )}
               <div className="model-selector">
                 <span>Sonnet 4.5</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

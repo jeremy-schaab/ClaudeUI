@@ -41,6 +41,7 @@ io.on('connection', (socket) => {
 
   socket.on('message', (data) => {
     console.log('Received message:', data.content);
+    console.log('Context files:', data.contextFiles);
 
     const startTime = Date.now();
 
@@ -61,8 +62,16 @@ io.on('connection', (socket) => {
     let response = '';
     let errorOutput = '';
 
+    // Prepare message with context files if provided
+    let messageToSend = data.content;
+    if (data.contextFiles && data.contextFiles.length > 0) {
+      const filesList = data.contextFiles.map(f => `- ${f}`).join('\n');
+      messageToSend = `Please reference these files for context:\n${filesList}\n\nUser question: ${data.content}`;
+      console.log('Including context files:', data.contextFiles);
+    }
+
     // Send the user's message to Claude CLI
-    claude.stdin.write(data.content + '\n');
+    claude.stdin.write(messageToSend + '\n');
     claude.stdin.end();
 
     claude.stdout.on('data', (chunk) => {
