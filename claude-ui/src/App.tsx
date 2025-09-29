@@ -18,14 +18,25 @@ interface RecentChat {
   timestamp: Date
 }
 
+interface FileNode {
+  name: string
+  path: string
+  type: 'file' | 'directory'
+  extension?: string
+  children?: FileNode[]
+}
+
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
+  const [currentView, setCurrentView] = useState<'chat' | 'admin' | 'files'>('chat')
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [recentChats, setRecentChats] = useState<RecentChat[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null)
+  const [fileTree, setFileTree] = useState<FileNode[]>([])
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
+  const [selectedFile, setSelectedFile] = useState<{ path: string, content: string } | null>(null)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -52,6 +63,47 @@ function App() {
     }
     loadRecentConversations()
   }, [])
+
+  // Load file tree
+  const loadFileTree = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/files')
+      console.log('File tree response:', response.data)
+      setFileTree(response.data.files)
+    } catch (err) {
+      console.error('Failed to load file tree:', err)
+    }
+  }
+
+  // Load file tree when switching to files view
+  useEffect(() => {
+    if (currentView === 'files' && fileTree.length === 0) {
+      loadFileTree()
+    }
+  }, [currentView])
+
+  const toggleDirectory = (dirPath: string) => {
+    setExpandedDirs(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(dirPath)) {
+        newSet.delete(dirPath)
+      } else {
+        newSet.add(dirPath)
+      }
+      return newSet
+    })
+  }
+
+  const handleFileClick = async (filePath: string) => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/files/content', {
+        params: { path: filePath }
+      })
+      setSelectedFile({ path: filePath, content: response.data.content })
+    } catch (err) {
+      console.error('Failed to load file content:', err)
+    }
+  }
 
   useEffect(() => {
     // Connect to Socket.IO server
@@ -221,8 +273,157 @@ function App() {
     }
   }
 
+  const renderFileTree = (nodes: FileNode[], level: number = 0) => {
+    return nodes.map(node => (
+      <div key={node.path} style={{ marginLeft: `${level * 12}px` }}>
+        {node.type === 'directory' ? (
+          <>
+            <div
+              className="file-tree-item directory"
+              onClick={() => toggleDirectory(node.path)}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {expandedDirs.has(node.path) ? (
+                  <polyline points="6 9 12 15 18 9"/>
+                ) : (
+                  <polyline points="9 18 15 12 9 6"/>
+                )}
+              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>{node.name}</span>
+            </div>
+            {expandedDirs.has(node.path) && node.children && (
+              <div className="file-tree-children">
+                {renderFileTree(node.children, level + 1)}
+              </div>
+            )}
+          </>
+        ) : (
+          <div
+            className={`file-tree-item file ${selectedFile?.path === node.path ? 'selected' : ''}`}
+            onClick={() => handleFileClick(node.path)}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+              <polyline points="13 2 13 9 20 9"/>
+            </svg>
+            <span>{node.name}</span>
+          </div>
+        )}
+      </div>
+    ))
+  }
+
   if (currentView === 'admin') {
     return <Admin onBackToChat={() => setCurrentView('chat')} />
+  }
+
+  if (currentView === 'files') {
+    return (
+      <div className="app">
+        <div className="sidebar">
+          <div className="sidebar-brand">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            </svg>
+            <span>Claude</span>
+          </div>
+
+          <button className="new-chat-btn" onClick={() => setCurrentView('chat')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Back to Chat</span>
+          </button>
+
+          <div className="sidebar-nav">
+            <button className="nav-item" onClick={() => setCurrentView('chat')}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Chats</span>
+            </button>
+            <button className="nav-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
+              <span>Projects</span>
+            </button>
+            <button className="nav-item active">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
+              </svg>
+              <span>Files</span>
+            </button>
+          </div>
+
+          <div className="sidebar-footer">
+            <button className="admin-link-btn" onClick={() => setCurrentView('admin')}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span>CLI History</span>
+            </button>
+            <div className="connection-status">
+              <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></span>
+              <span className="status-text">{isConnected ? 'Connected' : 'Disconnected'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="files-view">
+          <div className="file-tree-panel">
+            <div className="file-tree-header">
+              <h3>File Explorer</h3>
+              <button className="refresh-btn" onClick={loadFileTree}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+              </button>
+            </div>
+            <div className="file-tree-content">
+              {fileTree.length === 0 ? (
+                <div className="file-tree-empty">
+                  <p>Click refresh to load files</p>
+                </div>
+              ) : (
+                renderFileTree(fileTree)
+              )}
+            </div>
+          </div>
+
+          <div className="file-viewer-panel">
+            {selectedFile ? (
+              <>
+                <div className="file-viewer-header">
+                  <span className="file-viewer-path">{selectedFile.path}</span>
+                  <button className="close-file-btn" onClick={() => setSelectedFile(null)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+                <pre className="file-viewer-content">
+                  <code>{selectedFile.content}</code>
+                </pre>
+              </>
+            ) : (
+              <div className="file-viewer-empty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                  <polyline points="13 2 13 9 20 9"/>
+                </svg>
+                <p>Select a file to view its contents</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -256,12 +457,12 @@ function App() {
             </svg>
             <span>Projects</span>
           </button>
-          <button className="nav-item">
+          <button className="nav-item" onClick={() => setCurrentView('files')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+              <polyline points="13 2 13 9 20 9"/>
             </svg>
-            <span>Artifacts</span>
+            <span>Files</span>
           </button>
         </div>
 

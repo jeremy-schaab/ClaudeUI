@@ -3,6 +3,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const {
   logCliCall,
   getAllCliCalls,
@@ -302,6 +304,99 @@ app.put('/api/settings/:key', (req, res) => {
   } catch (err) {
     console.error('Error updating setting:', err);
     res.status(500).json({ error: 'Failed to update setting' });
+  }
+});
+
+// File tree endpoint
+app.get('/api/files', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+
+    const allowedExtensions = ['.md', '.ps1', '.js', '.css', '.html', '.cs', '.razor'];
+    const excludedDirs = ['node_modules', 'bin', 'obj'];
+
+    function buildFileTree(dirPath, relativePath = '') {
+      const entries = [];
+
+      try {
+        const items = fs.readdirSync(dirPath, { withFileTypes: true });
+
+        for (const item of items) {
+          const itemPath = path.join(dirPath, item.name);
+          const itemRelativePath = relativePath ? path.join(relativePath, item.name) : item.name;
+
+          if (item.isDirectory()) {
+            // Skip excluded directories
+            if (excludedDirs.includes(item.name)) {
+              continue;
+            }
+
+            const children = buildFileTree(itemPath, itemRelativePath);
+            if (children.length > 0) {
+              entries.push({
+                name: item.name,
+                path: itemRelativePath,
+                type: 'directory',
+                children: children
+              });
+            }
+          } else if (item.isFile()) {
+            const ext = path.extname(item.name);
+            if (allowedExtensions.includes(ext)) {
+              entries.push({
+                name: item.name,
+                path: itemRelativePath,
+                type: 'file',
+                extension: ext
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Error reading directory ${dirPath}:`, err);
+      }
+
+      // Sort: directories first, then files, both alphabetically
+      return entries.sort((a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name);
+        }
+        return a.type === 'directory' ? -1 : 1;
+      });
+    }
+
+    const fileTree = buildFileTree(rootPath);
+    res.json({ root: rootPath, files: fileTree });
+  } catch (err) {
+    console.error('Error building file tree:', err);
+    res.status(500).json({ error: 'Failed to build file tree' });
+  }
+});
+
+// Read file content endpoint
+app.get('/api/files/content', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const filePath = req.query.path;
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+
+    const fullPath = path.join(rootPath, filePath);
+
+    // Security check: ensure the path is within the root directory
+    const normalizedPath = path.normalize(fullPath);
+    const normalizedRoot = path.normalize(rootPath);
+    if (!normalizedPath.startsWith(normalizedRoot)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const content = fs.readFileSync(fullPath, 'utf8');
+    res.json({ path: filePath, content });
+  } catch (err) {
+    console.error('Error reading file:', err);
+    res.status(500).json({ error: 'Failed to read file' });
   }
 });
 
