@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
 import { io, Socket } from 'socket.io-client'
 import axios from 'axios'
@@ -26,8 +27,15 @@ interface FileNode {
   children?: FileNode[]
 }
 
-function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'admin' | 'files'>('chat')
+function ChatView() {
+  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Determine current view from URL
+  const currentView: 'chat' | 'admin' | 'files' = location.pathname.startsWith('/admin') ? 'admin'
+    : location.pathname.startsWith('/files') ? 'files'
+    : 'chat'
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -307,20 +315,33 @@ function App() {
   const handleLoadChat = async (chatId: string) => {
     if (isProcessing) return
 
-    try {
-      const response = await axios.get(`http://localhost:3001/api/conversations/${chatId}/messages`)
-      const loadedMessages = response.data.map((msg: any) => ({
-        id: msg.id.toString(),
-        role: msg.role,
-        content: msg.content,
-        timestamp: new Date(msg.timestamp)
-      }))
-      setMessages(loadedMessages)
-      setCurrentConversationId(parseInt(chatId))
-    } catch (err) {
-      console.error('Failed to load chat:', err)
-    }
+    // Navigate to the conversation URL
+    navigate(`/chat/${chatId}`)
   }
+
+  // Load conversation from URL parameter
+  useEffect(() => {
+    if (urlConversationId && urlConversationId !== currentConversationId?.toString()) {
+      const loadConversation = async () => {
+        try {
+          const response = await axios.get(`http://localhost:3001/api/conversations/${urlConversationId}/messages`)
+          const loadedMessages = response.data.map((msg: any) => ({
+            id: msg.id.toString(),
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp)
+          }))
+          setMessages(loadedMessages)
+          setCurrentConversationId(parseInt(urlConversationId))
+        } catch (err) {
+          console.error('Failed to load chat from URL:', err)
+          // If conversation doesn't exist, redirect to home
+          navigate('/')
+        }
+      }
+      loadConversation()
+    }
+  }, [urlConversationId])
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent loading the chat when clicking delete
@@ -401,7 +422,7 @@ function App() {
   }
 
   if (currentView === 'admin') {
-    return <Admin onBackToChat={() => setCurrentView('chat')} />
+    return <Admin onBackToChat={() => navigate('/')} />
   }
 
   if (currentView === 'files') {
@@ -415,7 +436,7 @@ function App() {
             <span>Claude</span>
           </div>
 
-          <button className="new-chat-btn" onClick={() => setCurrentView('chat')}>
+          <button className="new-chat-btn" onClick={() => navigate('/')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -423,7 +444,7 @@ function App() {
           </button>
 
           <div className="sidebar-nav">
-            <button className="nav-item" onClick={() => setCurrentView('chat')}>
+            <button className="nav-item" onClick={() => navigate('/')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
@@ -445,7 +466,7 @@ function App() {
           </div>
 
           <div className="sidebar-footer">
-            <button className="admin-link-btn" onClick={() => setCurrentView('admin')}>
+            <button className="admin-link-btn" onClick={() => navigate('/admin')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
               </svg>
@@ -552,7 +573,7 @@ function App() {
             </svg>
             <span>Projects</span>
           </button>
-          <button className="nav-item" onClick={() => setCurrentView('files')}>
+          <button className="nav-item" onClick={() => navigate('/files')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
               <polyline points="13 2 13 9 20 9"/>
@@ -589,7 +610,7 @@ function App() {
         </div>
 
         <div className="sidebar-footer">
-          <button className="admin-link-btn" onClick={() => setCurrentView('admin')}>
+          <button className="admin-link-btn" onClick={() => navigate('/admin')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
@@ -715,7 +736,7 @@ function App() {
                 </svg>
               </button>
               {selectedContext.size > 0 && (
-                <button type="button" className="context-indicator" onClick={() => setCurrentView('files')} title={`${selectedContext.size} file(s) in context - click to manage`}>
+                <button type="button" className="context-indicator" onClick={() => navigate('/files')} title={`${selectedContext.size} file(s) in context - click to manage`}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
                     <polyline points="13 2 13 9 20 9"/>
@@ -754,6 +775,17 @@ function App() {
         </div>
       </div>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<ChatView />} />
+      <Route path="/chat/:conversationId" element={<ChatView />} />
+      <Route path="/admin" element={<ChatView />} />
+      <Route path="/files" element={<ChatView />} />
+    </Routes>
   )
 }
 
