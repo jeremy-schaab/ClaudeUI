@@ -128,6 +128,30 @@ function Admin({ onBackToChat }: AdminProps) {
     fetchMessages(conversation.id)
   }
 
+  const handleDeleteConversation = async (conversationId: number) => {
+    if (!confirm('Are you sure you want to permanently delete this conversation? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await axios.delete(`http://localhost:3001/api/conversations/${conversationId}`)
+      setSaveMessage('Conversation permanently deleted')
+      setTimeout(() => setSaveMessage(null), 3000)
+
+      // Clear selection if deleted conversation was selected
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null)
+        setMessages([])
+      }
+
+      // Refresh conversations list
+      fetchConversations()
+    } catch (err) {
+      console.error('Error deleting conversation:', err)
+      setError('Failed to delete conversation')
+    }
+  }
+
   const handleSettingChange = (key: string, value: string) => {
     setEditingSettings(prev => ({ ...prev, [key]: value }))
   }
@@ -294,7 +318,18 @@ function Admin({ onBackToChat }: AdminProps) {
           </div>
         ) : view === 'conversations' && selectedConversation ? (
           <div className="conversation-messages">
-            <h2>{selectedConversation.title || 'Untitled'}</h2>
+            <div className="conversation-header">
+              <h2>{selectedConversation.title || 'Untitled'}</h2>
+              <button
+                onClick={() => handleDeleteConversation(selectedConversation.id)}
+                className="delete-conversation-btn"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Delete Permanently
+              </button>
+            </div>
             <div className="messages-list">
               {messages.map(message => (
                 <div key={message.id} className={`message ${message.role}`}>

@@ -11,7 +11,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    title TEXT
+    title TEXT,
+    hidden BOOLEAN DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS messages (
@@ -48,6 +49,25 @@ db.exec(`
   );
 `);
 
+// Migration: Add hidden column to conversations table if it doesn't exist
+try {
+  db.exec(`ALTER TABLE conversations ADD COLUMN hidden BOOLEAN DEFAULT 0`);
+  console.log('Added hidden column to conversations table');
+  // Update any NULL values to 0
+  db.exec(`UPDATE conversations SET hidden = 0 WHERE hidden IS NULL`);
+} catch (err) {
+  // Column already exists or other error - ignore
+  if (!err.message.includes('duplicate column')) {
+    console.log('Hidden column migration: column may already exist');
+    // Still try to update NULL values
+    try {
+      db.exec(`UPDATE conversations SET hidden = 0 WHERE hidden IS NULL`);
+    } catch (updateErr) {
+      // Ignore
+    }
+  }
+}
+
 console.log('Database initialized at:', dbPath);
 
 // Prepared statements for conversations
@@ -61,6 +81,11 @@ const updateConversation = db.prepare(`
 
 const getConversationById = db.prepare('SELECT * FROM conversations WHERE id = ?');
 const getAllConversations = db.prepare('SELECT * FROM conversations ORDER BY updated_at DESC');
+const getVisibleConversations = db.prepare('SELECT * FROM conversations WHERE hidden = 0 ORDER BY updated_at DESC');
+const hideConversation = db.prepare('UPDATE conversations SET hidden = 1 WHERE id = ?');
+const deleteConversation = db.prepare('DELETE FROM conversations WHERE id = ?');
+const deleteMessagesByConversation = db.prepare('DELETE FROM messages WHERE conversation_id = ?');
+const deleteCliCallsByConversation = db.prepare('DELETE FROM cli_calls WHERE conversation_id = ?');
 
 // Prepared statements for messages
 const insertMessage = db.prepare(`
@@ -134,6 +159,36 @@ function getConversations() {
     return getAllConversations.all();
   } catch (err) {
     console.error('Error getting conversations:', err);
+    throw err;
+  }
+}
+
+function getVisibleConversationsOnly() {
+  try {
+    return getVisibleConversations.all();
+  } catch (err) {
+    console.error('Error getting visible conversations:', err);
+    throw err;
+  }
+}
+
+function markConversationHidden(id) {
+  try {
+    return hideConversation.run(id);
+  } catch (err) {
+    console.error('Error hiding conversation:', err);
+    throw err;
+  }
+}
+
+function permanentlyDeleteConversation(id) {
+  try {
+    // Delete in order: cli_calls, messages, then conversation
+    deleteCliCallsByConversation.run(id);
+    deleteMessagesByConversation.run(id);
+    return deleteConversation.run(id);
+  } catch (err) {
+    console.error('Error deleting conversation:', err);
     throw err;
   }
 }
@@ -266,6 +321,9 @@ module.exports = {
   updateConversationTitle,
   getConversation,
   getConversations,
+  getVisibleConversationsOnly,
+  markConversationHidden,
+  permanentlyDeleteConversation,
   saveMessage,
   getMessages,
   logCliCall,

@@ -35,11 +35,11 @@ function App() {
     conversationIdRef.current = currentConversationId
   }, [currentConversationId])
 
-  // Load recent conversations on mount
+  // Load recent conversations on mount (only visible ones)
   useEffect(() => {
     const loadRecentConversations = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/conversations')
+        const response = await axios.get('http://localhost:3001/api/conversations/visible')
         const conversations = response.data.slice(0, 20).map((conv: any) => ({
           id: conv.id.toString(),
           title: conv.title || 'Untitled',
@@ -202,6 +202,25 @@ function App() {
     }
   }
 
+  const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent loading the chat when clicking delete
+
+    try {
+      await axios.put(`http://localhost:3001/api/conversations/${chatId}/hide`)
+
+      // Remove from local state
+      setRecentChats(prev => prev.filter(chat => chat.id !== chatId))
+
+      // If deleting the current conversation, clear messages
+      if (currentConversationId?.toString() === chatId) {
+        setMessages([])
+        setCurrentConversationId(null)
+      }
+    } catch (err) {
+      console.error('Failed to hide chat:', err)
+    }
+  }
+
   if (currentView === 'admin') {
     return <Admin onBackToChat={() => setCurrentView('chat')} />
   }
@@ -255,7 +274,16 @@ function App() {
                 className={`recent-item ${currentConversationId?.toString() === chat.id ? 'active' : ''}`}
                 onClick={() => handleLoadChat(chat.id)}
               >
-                {chat.title}
+                <span className="recent-item-title">{chat.title}</span>
+                <button
+                  className="delete-chat-btn"
+                  onClick={(e) => handleDeleteChat(chat.id, e)}
+                  title="Delete chat"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
               </div>
             ))}
             {recentChats.length === 0 && (

@@ -388,13 +388,39 @@
   margin: 0 auto;
 }
 
+.conversation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e7e5e4;
+}
+
 .conversation-messages h2 {
   font-size: 24px;
   font-weight: 600;
   color: #1c1917;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e7e5e4;
+  margin: 0;
+}
+
+.delete-conversation-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  transition: all 0.2s;
+}
+
+.delete-conversation-btn:hover {
+  background-color: #b91c1c;
 }
 
 .messages-list {

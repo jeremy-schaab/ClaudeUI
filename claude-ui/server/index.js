@@ -12,6 +12,9 @@ const {
   updateConversationTitle,
   getConversation,
   getConversations,
+  getVisibleConversationsOnly,
+  markConversationHidden,
+  permanentlyDeleteConversation,
   saveMessage,
   getMessages,
   getSettingValue,
@@ -136,6 +139,17 @@ io.on('connection', (socket) => {
 // REST API endpoints
 
 // Conversation endpoints
+// Get visible conversations only (for user UI) - must come before /:id
+app.get('/api/conversations/visible', (req, res) => {
+  try {
+    const conversations = getVisibleConversationsOnly();
+    res.json(conversations);
+  } catch (err) {
+    console.error('Error fetching visible conversations:', err);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
 app.get('/api/conversations', (req, res) => {
   try {
     const conversations = getConversations();
@@ -201,6 +215,28 @@ app.post('/api/conversations/:id/messages', (req, res) => {
   } catch (err) {
     console.error('Error saving message:', err);
     res.status(500).json({ error: 'Failed to save message' });
+  }
+});
+
+// Hide conversation (soft delete for user UI)
+app.put('/api/conversations/:id/hide', (req, res) => {
+  try {
+    markConversationHidden(req.params.id);
+    res.json({ success: true, message: 'Conversation hidden' });
+  } catch (err) {
+    console.error('Error hiding conversation:', err);
+    res.status(500).json({ error: 'Failed to hide conversation' });
+  }
+});
+
+// Delete conversation permanently (admin only)
+app.delete('/api/conversations/:id', (req, res) => {
+  try {
+    permanentlyDeleteConversation(req.params.id);
+    res.json({ success: true, message: 'Conversation permanently deleted' });
+  } catch (err) {
+    console.error('Error deleting conversation:', err);
+    res.status(500).json({ error: 'Failed to delete conversation' });
   }
 });
 

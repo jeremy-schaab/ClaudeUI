@@ -115,15 +115,44 @@ body {
 }
 
 .recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   font-size: 13px;
   color: #57534e;
   border-radius: 6px;
   cursor: pointer;
+  transition: all 0.15s;
+}
+
+.recent-item-title {
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.delete-chat-btn {
+  flex-shrink: 0;
+  display: none;
+  padding: 4px;
+  background: none;
+  border: none;
+  color: #78716c;
+  cursor: pointer;
+  border-radius: 4px;
   transition: all 0.15s;
+}
+
+.recent-item:hover .delete-chat-btn {
+  display: block;
+}
+
+.delete-chat-btn:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
 .recent-item:hover {
