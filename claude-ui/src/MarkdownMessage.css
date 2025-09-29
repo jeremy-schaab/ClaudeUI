@@ -1,0 +1,158 @@
+.markdown-content {
+  line-height: 1.6;
+  color: #1c1917;
+}
+
+/* Headings */
+.markdown-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 24px 0 16px 0;
+  color: #1c1917;
+  border-bottom: 2px solid #e7e5e4;
+  padding-bottom: 8px;
+}
+
+.markdown-content h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 20px 0 12px 0;
+  color: #1c1917;
+}
+
+.markdown-content h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 16px 0 10px 0;
+  color: #1c1917;
+}
+
+/* Paragraphs */
+.markdown-content p {
+  margin: 12px 0;
+  line-height: 1.7;
+}
+
+/* Lists */
+.markdown-content ul,
+.markdown-content ol {
+  margin: 12px 0;
+  padding-left: 28px;
+}
+
+.markdown-content li {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.markdown-content ul li {
+  list-style-type: disc;
+}
+
+.markdown-content ol li {
+  list-style-type: decimal;
+}
+
+/* Inline code */
+.markdown-content code:not(pre code) {
+  background-color: #f5f5f4;
+  color: #c2410c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  border: 1px solid #e7e5e4;
+}
+
+/* Code blocks - override SyntaxHighlighter default */
+.markdown-content pre {
+  margin: 16px 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid #292524 !important;
+}
+
+.markdown-content pre > div {
+  margin: 0 !important;
+  padding: 16px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  overflow-x: auto !important;
+}
+
+/* Blockquotes */
+.markdown-content blockquote {
+  margin: 16px 0;
+  padding: 12px 20px;
+  border-left: 4px solid #cc5f47;
+  background-color: #fff7ed;
+  color: #78716c;
+  font-style: italic;
+}
+
+.markdown-content blockquote p {
+  margin: 0;
+}
+
+/* Links */
+.markdown-content a {
+  color: #cc5f47;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.markdown-content a:hover {
+  border-bottom-color: #cc5f47;
+}
+
+/* Tables */
+.markdown-content table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.markdown-content thead {
+  background-color: #f5f5f4;
+  border-bottom: 2px solid #d6d3d1;
+}
+
+.markdown-content th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.markdown-content td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.markdown-content tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-content tbody tr:hover {
+  background-color: #fafaf9;
+}
+
+/* Horizontal rule */
+.markdown-content hr {
+  margin: 24px 0;
+  border: none;
+  border-top: 2px solid #e7e5e4;
+}
+
+/* Strong/Bold */
+.markdown-content strong {
+  font-weight: 600;
+  color: #1c1917;
+}
+
+/* Emphasis/Italic */
+.markdown-content em {
+  font-style: italic;
+}
