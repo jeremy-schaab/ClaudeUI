@@ -851,19 +851,7 @@ body {
   position: relative;
 }
 
-.file-editor {
-  width: 100%;
-  height: 100%;
-  padding: 16px;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: 'Courier New', Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #1c1917;
-  background-color: #ffffff;
-}
+/* Monaco Editor is in the file-viewer-content and takes full height */
 
 .markdown-viewer {
   padding: 24px;

@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import remarkGfm from 'remark-gfm'
+import Editor from '@monaco-editor/react'
 
 interface Message {
   id: string
@@ -169,6 +170,39 @@ function ChatView() {
   const getFileExtension = (path: string): string => {
     const parts = path.split('.')
     return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
+  }
+
+  const getMonacoLanguage = (path: string): string => {
+    const ext = getFileExtension(path)
+    const languageMap: { [key: string]: string } = {
+      'js': 'javascript',
+      'ts': 'typescript',
+      'jsx': 'javascript',
+      'tsx': 'typescript',
+      'json': 'json',
+      'html': 'html',
+      'css': 'css',
+      'scss': 'scss',
+      'less': 'less',
+      'md': 'markdown',
+      'py': 'python',
+      'java': 'java',
+      'cs': 'csharp',
+      'cpp': 'cpp',
+      'c': 'c',
+      'go': 'go',
+      'rs': 'rust',
+      'php': 'php',
+      'rb': 'ruby',
+      'sh': 'shell',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'xml': 'xml',
+      'sql': 'sql',
+      'ps1': 'powershell',
+      'razor': 'razor'
+    }
+    return languageMap[ext] || 'plaintext'
   }
 
   const toggleContextSelection = (path: string, e: React.MouseEvent | React.ChangeEvent) => {
@@ -640,11 +674,23 @@ function ChatView() {
                 </div>
                 <div className="file-viewer-content">
                   {isEditMode ? (
-                    <textarea
-                      className="file-editor"
+                    <Editor
+                      height="100%"
+                      language={getMonacoLanguage(selectedFile.path)}
                       value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      spellCheck={false}
+                      onChange={(value) => setEditedContent(value || '')}
+                      theme="vs-dark"
+                      options={{
+                        minimap: { enabled: true },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        roundedSelection: false,
+                        scrollBeyondLastLine: false,
+                        readOnly: false,
+                        automaticLayout: true,
+                        wordWrap: 'on',
+                        tabSize: 2
+                      }}
                     />
                   ) : getFileExtension(selectedFile.path) === 'md' ? (
                     <div className="markdown-viewer">
