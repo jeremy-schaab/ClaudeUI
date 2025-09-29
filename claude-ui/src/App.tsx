@@ -76,12 +76,10 @@ function App() {
     }
   }
 
-  // Load file tree when switching to files view
+  // Load file tree on mount so it's available for context selection
   useEffect(() => {
-    if (currentView === 'files' && fileTree.length === 0) {
-      loadFileTree()
-    }
-  }, [currentView])
+    loadFileTree()
+  }, [])
 
   const toggleDirectory = (dirPath: string) => {
     setExpandedDirs(prev => {
