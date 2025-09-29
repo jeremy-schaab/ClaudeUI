@@ -782,7 +782,8 @@ body {
 
 .edit-file-btn,
 .save-file-btn,
-.cancel-edit-btn {
+.cancel-edit-btn,
+.diff-btn {
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -824,6 +825,27 @@ body {
 .cancel-edit-btn:hover {
   background-color: #f5f5f4;
   color: #1c1917;
+}
+
+.diff-btn {
+  background-color: #ffffff;
+  color: #57534e;
+}
+
+.diff-btn:hover {
+  background-color: #f5f5f4;
+  color: #1c1917;
+}
+
+.diff-btn.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.diff-btn.active:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .close-file-btn {

@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import remarkGfm from 'remark-gfm'
-import Editor from '@monaco-editor/react'
+import Editor, { DiffEditor } from '@monaco-editor/react'
 
 interface Message {
   id: string
@@ -59,6 +59,7 @@ function ChatView() {
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [selectedFile, setSelectedFile] = useState<{ path: string, content: string } | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [showDiff, setShowDiff] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [selectedContext, setSelectedContext] = useState<Set<string>>(new Set())
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5-20250929')
@@ -141,6 +142,7 @@ function ChatView() {
       setSelectedFile({ path: filePath, content: response.data.content })
       setEditedContent(response.data.content)
       setIsEditMode(false)
+      setShowDiff(false)
     } catch (err) {
       console.error('Failed to load file content:', err)
     }
@@ -149,6 +151,12 @@ function ChatView() {
   const handleSaveFile = async () => {
     if (!selectedFile) return
 
+    const confirmed = window.confirm(
+      `Are you sure you want to overwrite "${selectedFile.path}"?\n\nThis action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
     try {
       await axios.put('http://localhost:3001/api/files/content', {
         path: selectedFile.path,
@@ -156,6 +164,7 @@ function ChatView() {
       })
       setSelectedFile({ ...selectedFile, content: editedContent })
       setIsEditMode(false)
+      setShowDiff(false)
     } catch (err) {
       console.error('Failed to save file:', err)
       alert('Failed to save file')
@@ -165,6 +174,7 @@ function ChatView() {
   const handleCancelEdit = () => {
     setEditedContent(selectedFile?.content || '')
     setIsEditMode(false)
+    setShowDiff(false)
   }
 
   const getFileExtension = (path: string): string => {
@@ -650,6 +660,15 @@ function ChatView() {
                       </button>
                     ) : (
                       <>
+                        <button
+                          className={`diff-btn ${showDiff ? 'active' : ''}`}
+                          onClick={() => setShowDiff(!showDiff)}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4"/>
+                          </svg>
+                          {showDiff ? 'Edit' : 'Diff'}
+                        </button>
                         <button className="save-file-btn" onClick={handleSaveFile}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="20 6 9 17 4 12"/>
@@ -674,24 +693,46 @@ function ChatView() {
                 </div>
                 <div className="file-viewer-content">
                   {isEditMode ? (
-                    <Editor
-                      height="100%"
-                      language={getMonacoLanguage(selectedFile.path)}
-                      value={editedContent}
-                      onChange={(value) => setEditedContent(value || '')}
-                      theme="vs-dark"
-                      options={{
-                        minimap: { enabled: true },
-                        fontSize: 14,
-                        lineNumbers: 'on',
-                        roundedSelection: false,
-                        scrollBeyondLastLine: false,
-                        readOnly: false,
-                        automaticLayout: true,
-                        wordWrap: 'on',
-                        tabSize: 2
-                      }}
-                    />
+                    showDiff ? (
+                      <DiffEditor
+                        height="100%"
+                        language={getMonacoLanguage(selectedFile.path)}
+                        original={selectedFile.content}
+                        modified={editedContent}
+                        theme="vs-dark"
+                        options={{
+                          renderSideBySide: true,
+                          readOnly: false,
+                          fontSize: 14,
+                          automaticLayout: true
+                        }}
+                        onMount={(editor) => {
+                          const modifiedEditor = editor.getModifiedEditor()
+                          modifiedEditor.onDidChangeModelContent(() => {
+                            setEditedContent(modifiedEditor.getValue())
+                          })
+                        }}
+                      />
+                    ) : (
+                      <Editor
+                        height="100%"
+                        language={getMonacoLanguage(selectedFile.path)}
+                        value={editedContent}
+                        onChange={(value) => setEditedContent(value || '')}
+                        theme="vs-dark"
+                        options={{
+                          minimap: { enabled: true },
+                          fontSize: 14,
+                          lineNumbers: 'on',
+                          roundedSelection: false,
+                          scrollBeyondLastLine: false,
+                          readOnly: false,
+                          automaticLayout: true,
+                          wordWrap: 'on',
+                          tabSize: 2
+                        }}
+                      />
+                    )
                   ) : getFileExtension(selectedFile.path) === 'md' ? (
                     <div className="markdown-viewer">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
