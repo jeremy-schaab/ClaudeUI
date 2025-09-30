@@ -323,6 +323,13 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .message.user .message-avatar {
@@ -331,8 +338,10 @@ body {
 }
 
 .message.assistant .message-avatar {
-  background-color: #fef3c7;
+  background-color: #ffffff;
   color: #ca8a04;
+  padding: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .message-content {

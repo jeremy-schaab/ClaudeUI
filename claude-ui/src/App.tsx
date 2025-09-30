@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client'
 import axios from 'axios'
 import Admin from './Admin'
 import MarkdownMessage from './MarkdownMessage'
+import telliLogo from './assets/telli_logo.png'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -989,9 +990,7 @@ function ChatView() {
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                       </svg>
                     ) : (
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                      </svg>
+                      <img src={telliLogo} alt="Telli" width="32" height="32" />
                     )}
                   </div>
                   <div className="message-content">
@@ -1008,9 +1007,7 @@ function ChatView() {
               {isProcessing && (
                 <div className="message assistant">
                   <div className="message-avatar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                    </svg>
+                    <img src={telliLogo} alt="Telli" width="32" height="32" />
                   </div>
                   <div className="message-content">
                     <div className="typing-indicator">
