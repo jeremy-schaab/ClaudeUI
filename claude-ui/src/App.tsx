@@ -72,6 +72,7 @@ function ChatView() {
   const [showCommandPanel, setShowCommandPanel] = useState(false)
   const [commandFilter, setCommandFilter] = useState<string>('')
   const [selectedCommandHint, setSelectedCommandHint] = useState<{name: string, argumentHint: string, description: string} | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -641,12 +642,27 @@ function ChatView() {
   if (currentView === 'files') {
     return (
       <div className="app">
-        <div className="sidebar">
+        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="sidebar-brand">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            </svg>
-            <span>Claude</span>
+            <div className="brand-content">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              </svg>
+              <span>Claude</span>
+            </div>
+            <button
+              className="collapse-sidebar-btn"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {sidebarCollapsed ? (
+                  <path d="M9 18l6-6-6-6"/>
+                ) : (
+                  <path d="M15 18l-6-6 6-6"/>
+                )}
+              </svg>
+            </button>
           </div>
 
           <button className="new-chat-btn" onClick={() => navigate('/')}>
@@ -857,12 +873,27 @@ function ChatView() {
 
   return (
     <div className="app">
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          </svg>
-          <span>Claude</span>
+          <div className="brand-content">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            </svg>
+            <span>Claude</span>
+          </div>
+          <button
+            className="collapse-sidebar-btn"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {sidebarCollapsed ? (
+                <path d="M9 18l6-6-6-6"/>
+              ) : (
+                <path d="M15 18l-6-6 6-6"/>
+              )}
+            </svg>
+          </button>
         </div>
 
         <button className="new-chat-btn" onClick={handleNewChat} disabled={isProcessing}>
