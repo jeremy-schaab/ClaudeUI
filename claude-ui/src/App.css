@@ -860,7 +860,8 @@ body {
 .edit-file-btn,
 .save-file-btn,
 .cancel-edit-btn,
-.diff-btn {
+.diff-btn,
+.summarize-file-btn {
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -881,6 +882,22 @@ body {
 .edit-file-btn:hover {
   background-color: #f5f5f4;
   color: #1c1917;
+}
+
+.summarize-file-btn {
+  background-color: #0369a1;
+  color: #ffffff;
+  border-color: #0369a1;
+}
+
+.summarize-file-btn:hover:not(:disabled) {
+  background-color: #075985;
+  border-color: #075985;
+}
+
+.summarize-file-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .save-file-btn {
@@ -941,6 +958,51 @@ body {
 .close-file-btn:hover {
   background-color: #f5f5f4;
   color: #1c1917;
+}
+
+.file-summary-panel {
+  background-color: #fef3c7;
+  border-bottom: 2px solid #fde68a;
+  padding: 16px 24px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.file-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.file-summary-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #92400e;
+  margin: 0;
+}
+
+.close-summary-btn {
+  padding: 4px;
+  background: none;
+  border: none;
+  color: #92400e;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-summary-btn:hover {
+  background-color: #fde68a;
+}
+
+.file-summary-content {
+  color: #78350f;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .file-viewer-content {
