@@ -75,6 +75,7 @@ function ChatView() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [fileSummary, setFileSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [showHtmlPreview, setShowHtmlPreview] = useState(false)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -797,6 +798,18 @@ function ChatView() {
                           </svg>
                           Edit
                         </button>
+                        {getFileExtension(selectedFile.path) === 'html' && (
+                          <button
+                            className="preview-file-btn"
+                            onClick={() => setShowHtmlPreview(true)}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                              <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Preview
+                          </button>
+                        )}
                         <button
                           className="summarize-file-btn"
                           onClick={handleSummarizeFile}
@@ -957,6 +970,30 @@ function ChatView() {
             )}
           </div>
         </div>
+
+        {/* HTML Preview Modal */}
+        {showHtmlPreview && selectedFile && (
+          <div className="html-preview-modal" onClick={() => setShowHtmlPreview(false)}>
+            <div className="html-preview-content" onClick={(e) => e.stopPropagation()}>
+              <div className="html-preview-header">
+                <h3>HTML Preview - {selectedFile.path}</h3>
+                <button className="close-preview-btn" onClick={() => setShowHtmlPreview(false)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="html-preview-body">
+                <iframe
+                  srcDoc={selectedFile.content}
+                  title="HTML Preview"
+                  sandbox="allow-scripts allow-same-origin"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
