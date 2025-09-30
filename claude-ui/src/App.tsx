@@ -64,6 +64,9 @@ function ChatView() {
   const [selectedContext, setSelectedContext] = useState<Set<string>>(new Set())
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5-20250929')
   const [showModelDropdown, setShowModelDropdown] = useState(false)
+  const [availableAgents, setAvailableAgents] = useState<Array<{name: string, description: string, source: string}>>([])
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+  const [showAgentDropdown, setShowAgentDropdown] = useState(false)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -120,6 +123,21 @@ function ChatView() {
   // Load file tree on mount so it's available for context selection
   useEffect(() => {
     loadFileTree()
+  }, [])
+
+  // Load available agents
+  const loadAgents = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/agents')
+      console.log('Available agents:', response.data)
+      setAvailableAgents(response.data)
+    } catch (err) {
+      console.error('Failed to load agents:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadAgents()
   }, [])
 
   const toggleDirectory = (dirPath: string) => {
@@ -398,9 +416,17 @@ function ChatView() {
 
     // Get context files and emit message
     const contextFiles = getContextFiles()
+
+    // Prefix message with @agent mention if an agent is selected
+    let messageContent = input
+    if (selectedAgent) {
+      messageContent = `@${selectedAgent} ${input}`
+      console.log('Sending with agent:', selectedAgent)
+    }
+
     console.log('Sending message with context files:', contextFiles)
     console.log('Sending with model:', selectedModel)
-    socketRef.current?.emit('message', { content: input, contextFiles, model: selectedModel })
+    socketRef.current?.emit('message', { content: messageContent, contextFiles, model: selectedModel })
     setInput('')
   }
 
@@ -1013,6 +1039,62 @@ function ChatView() {
                   </div>
                 )}
               </div>
+              {availableAgents.length > 0 && (
+                <div className="model-selector agent-selector">
+                  <button
+                    type="button"
+                    className="model-selector-btn"
+                    onClick={() => setShowAgentDropdown(!showAgentDropdown)}
+                  >
+                    <span>{selectedAgent || 'No Agent'}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {showAgentDropdown && (
+                    <div className="model-dropdown">
+                      <div
+                        className={`model-option ${!selectedAgent ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedAgent(null)
+                          setShowAgentDropdown(false)
+                        }}
+                      >
+                        <div className="model-option-header">
+                          <span className="model-name">No Agent</span>
+                          {!selectedAgent && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          )}
+                        </div>
+                        <div className="model-description">Use default Claude behavior</div>
+                      </div>
+                      {availableAgents.map(agent => (
+                        <div
+                          key={agent.name}
+                          className={`model-option ${selectedAgent === agent.name ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSelectedAgent(agent.name)
+                            setShowAgentDropdown(false)
+                          }}
+                        >
+                          <div className="model-option-header">
+                            <span className="model-name">{agent.name}</span>
+                            {selectedAgent === agent.name && (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                              </svg>
+                            )}
+                          </div>
+                          <div className="model-description">{agent.description}</div>
+                          <div className="agent-source">Source: {agent.source}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <button type="submit" disabled={!input.trim() || isProcessing || !isConnected} className="send-btn-new">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>

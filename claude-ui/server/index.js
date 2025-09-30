@@ -461,6 +461,76 @@ app.put('/api/files/content', (req, res) => {
   }
 });
 
+// Agents endpoint - list available agents from .claude/agents
+app.get('/api/agents', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const projectAgentsPath = path.join(rootPath, '.claude', 'agents');
+    const userAgentsPath = path.join(require('os').homedir(), '.claude', 'agents');
+
+    const agents = [];
+
+    // Helper to parse agent frontmatter
+    function parseAgent(filePath, source) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const lines = content.split(/\r?\n/); // Handle both \n and \r\n
+
+        if (lines[0].trim() === '---') {
+          const endIndex = lines.findIndex((line, idx) => idx > 0 && line.trim() === '---');
+          if (endIndex > 0) {
+            const frontmatter = lines.slice(1, endIndex);
+            const agent = { source };
+
+            for (const line of frontmatter) {
+              const match = line.match(/^([a-zA-Z_-]+):\s*(.+)$/);
+              if (match) {
+                const [, key, value] = match;
+                agent[key] = value.trim();
+              }
+            }
+
+            if (agent.name) {
+              return agent;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Error parsing agent ${filePath}:`, err);
+      }
+      return null;
+    }
+
+    // Read project agents (.claude/agents)
+    if (fs.existsSync(projectAgentsPath)) {
+      const files = fs.readdirSync(projectAgentsPath).filter(f => f.endsWith('.md'));
+      for (const file of files) {
+        const agent = parseAgent(path.join(projectAgentsPath, file), 'project');
+        if (agent) agents.push(agent);
+      }
+    }
+
+    // Read user agents (~/.claude/agents)
+    if (fs.existsSync(userAgentsPath)) {
+      const files = fs.readdirSync(userAgentsPath).filter(f => f.endsWith('.md'));
+      for (const file of files) {
+        const agent = parseAgent(path.join(userAgentsPath, file), 'user');
+        if (agent) {
+          // Only add if not already defined at project level
+          if (!agents.find(a => a.name === agent.name)) {
+            agents.push(agent);
+          }
+        }
+      }
+    }
+
+    res.json(agents);
+  } catch (err) {
+    console.error('Error fetching agents:', err);
+    res.status(500).json({ error: 'Failed to fetch agents' });
+  }
+});
+
 const PORT = 3001;
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

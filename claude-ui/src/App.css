@@ -515,6 +515,13 @@ body {
   line-height: 1.4;
 }
 
+.agent-source {
+  font-size: 11px;
+  color: #a8a29e;
+  margin-top: 4px;
+  font-style: italic;
+}
+
 .send-btn-new {
   padding: 8px;
   background-color: #cc5f47;
