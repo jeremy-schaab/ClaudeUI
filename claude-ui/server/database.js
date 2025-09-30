@@ -47,6 +47,15 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS prompts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    prompt_text TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // Migration: Add hidden column to conversations table if it doesn't exist
@@ -136,6 +145,16 @@ try {
   }
 }
 
+// Migration: Add model column to prompts table
+try {
+  db.exec(`ALTER TABLE prompts ADD COLUMN model TEXT`);
+  console.log('Added model column to prompts table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('model column may already exist in prompts');
+  }
+}
+
 console.log('Database initialized at:', dbPath);
 
 // Prepared statements for conversations
@@ -196,6 +215,18 @@ const upsertSetting = db.prepare(`
   ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
 `);
 const getAllSettings = db.prepare('SELECT * FROM settings');
+
+// Prepared statements for prompts
+const insertPrompt = db.prepare(`
+  INSERT INTO prompts (name, description, prompt_text, model) VALUES (?, ?, ?, ?)
+`);
+const updatePrompt = db.prepare(`
+  UPDATE prompts SET description = ?, prompt_text = ?, model = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+`);
+const getPromptById = db.prepare('SELECT * FROM prompts WHERE id = ?');
+const getPromptByName = db.prepare('SELECT * FROM prompts WHERE name = ?');
+const getAllPrompts = db.prepare('SELECT * FROM prompts ORDER BY name ASC');
+const deletePromptById = db.prepare('DELETE FROM prompts WHERE id = ?');
 
 // Conversation functions
 function createConversation(title = 'Untitled', selectedFiles = null, model = null) {
@@ -394,8 +425,82 @@ function initializeDefaultSettings() {
   }
 }
 
+// Prompt functions
+function createPrompt(name, description, promptText, model = null) {
+  try {
+    const result = insertPrompt.run(name, description, promptText, model);
+    return result.lastInsertRowid;
+  } catch (err) {
+    console.error('Error creating prompt:', err);
+    throw err;
+  }
+}
+
+function updatePromptById(id, description, promptText, model = null) {
+  try {
+    return updatePrompt.run(description, promptText, model, id);
+  } catch (err) {
+    console.error('Error updating prompt:', err);
+    throw err;
+  }
+}
+
+function getPrompt(id) {
+  try {
+    return getPromptById.get(id);
+  } catch (err) {
+    console.error('Error getting prompt:', err);
+    throw err;
+  }
+}
+
+function getPromptName(name) {
+  try {
+    return getPromptByName.get(name);
+  } catch (err) {
+    console.error('Error getting prompt by name:', err);
+    throw err;
+  }
+}
+
+function getPrompts() {
+  try {
+    return getAllPrompts.all();
+  } catch (err) {
+    console.error('Error getting all prompts:', err);
+    throw err;
+  }
+}
+
+function deletePrompt(id) {
+  try {
+    return deletePromptById.run(id);
+  } catch (err) {
+    console.error('Error deleting prompt:', err);
+    throw err;
+  }
+}
+
+// Initialize default prompts
+function initializeDefaultPrompts() {
+  try {
+    if (!getPromptName('file-summarization')) {
+      createPrompt(
+        'file-summarization',
+        'Summarize the content of a file',
+        'Please provide a comprehensive summary of the following file. Include:\n\n1. **Purpose**: What is the main purpose of this file?\n2. **Key Components**: What are the main sections, functions, or classes?\n3. **Dependencies**: What libraries or modules does it depend on?\n4. **Key Functionality**: What are the most important features or behaviors?\n5. **Notable Patterns**: Are there any design patterns or architectural decisions worth mentioning?\n\nKeep the summary concise but informative.',
+        'claude-3-5-haiku-20241022'  // Use faster, cheaper model for summaries by default
+      );
+      console.log('Initialized default file-summarization prompt');
+    }
+  } catch (err) {
+    console.error('Error initializing default prompts:', err);
+  }
+}
+
 // Initialize defaults on startup
 initializeDefaultSettings();
+initializeDefaultPrompts();
 
 module.exports = {
   db,
@@ -414,5 +519,11 @@ module.exports = {
   getRecentCliCalls,
   getSettingValue,
   setSetting,
-  getSettings
+  getSettings,
+  createPrompt,
+  updatePromptById,
+  getPrompt,
+  getPromptName,
+  getPrompts,
+  deletePrompt
 };

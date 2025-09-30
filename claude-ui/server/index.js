@@ -21,7 +21,13 @@ const {
   getMessages,
   getSettingValue,
   setSetting,
-  getSettings
+  getSettings,
+  createPrompt,
+  updatePromptById,
+  getPrompt,
+  getPromptName,
+  getPrompts,
+  deletePrompt
 } = require('./database');
 
 const app = express();
@@ -366,6 +372,157 @@ app.get('/api/current-directory', (req, res) => {
   } catch (err) {
     console.error('Error getting current directory:', err);
     res.status(500).json({ error: 'Failed to get current directory' });
+  }
+});
+
+// Prompts endpoints
+app.get('/api/prompts', (req, res) => {
+  try {
+    const prompts = getPrompts();
+    res.json(prompts);
+  } catch (err) {
+    console.error('Error fetching prompts:', err);
+    res.status(500).json({ error: 'Failed to fetch prompts' });
+  }
+});
+
+app.get('/api/prompts/:id', (req, res) => {
+  try {
+    const prompt = getPrompt(req.params.id);
+    if (prompt) {
+      res.json(prompt);
+    } else {
+      res.status(404).json({ error: 'Prompt not found' });
+    }
+  } catch (err) {
+    console.error('Error fetching prompt:', err);
+    res.status(500).json({ error: 'Failed to fetch prompt' });
+  }
+});
+
+app.get('/api/prompts/name/:name', (req, res) => {
+  try {
+    const prompt = getPromptName(req.params.name);
+    if (prompt) {
+      res.json(prompt);
+    } else {
+      res.status(404).json({ error: 'Prompt not found' });
+    }
+  } catch (err) {
+    console.error('Error fetching prompt by name:', err);
+    res.status(500).json({ error: 'Failed to fetch prompt' });
+  }
+});
+
+app.post('/api/prompts', (req, res) => {
+  try {
+    const { name, description, prompt_text, model } = req.body;
+    if (!name || !prompt_text) {
+      return res.status(400).json({ error: 'Name and prompt_text are required' });
+    }
+    const id = createPrompt(name, description || '', prompt_text, model || null);
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error creating prompt:', err);
+    res.status(500).json({ error: 'Failed to create prompt' });
+  }
+});
+
+app.put('/api/prompts/:id', (req, res) => {
+  try {
+    const { description, prompt_text, model } = req.body;
+    if (!prompt_text) {
+      return res.status(400).json({ error: 'prompt_text is required' });
+    }
+    updatePromptById(req.params.id, description || '', prompt_text, model || null);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error updating prompt:', err);
+    res.status(500).json({ error: 'Failed to update prompt' });
+  }
+});
+
+app.delete('/api/prompts/:id', (req, res) => {
+  try {
+    deletePrompt(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting prompt:', err);
+    res.status(500).json({ error: 'Failed to delete prompt' });
+  }
+});
+
+// Summarize file endpoint
+app.post('/api/summarize', async (req, res) => {
+  try {
+    const { content, fileName } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    // Get the summarization prompt
+    const promptData = getPromptName('file-summarization');
+    if (!promptData) {
+      return res.status(500).json({ error: 'Summarization prompt not found' });
+    }
+
+    // Build the full message
+    const fullMessage = `${promptData.prompt_text}\n\nFile: ${fileName || 'Unknown'}\n\n\`\`\`\n${content}\n\`\`\``;
+
+    // Get CLI settings
+    const executionPath = getSettingValue('CLI_ROOT', process.cwd());
+    const cliCommand = getSettingValue('CLI_COMMAND', 'claude');
+    const cliArgs = getSettingValue('CLI_ARGS', 'chat');
+
+    // Use model from prompt if specified, otherwise use default
+    const model = promptData.model || getSettingValue('DEFAULT_MODEL', 'claude-sonnet-4-5-20250929');
+
+    const args = cliArgs ? cliArgs.split(' ') : [];
+    args.push('--print', '--output-format', 'json', '--model', model);
+
+    console.log('Summarizing file:', fileName, 'with model:', model);
+
+    const claude = spawn(cliCommand, args, {
+      shell: true,
+      cwd: executionPath
+    });
+
+    let response = '';
+    let errorOutput = '';
+
+    claude.stdin.write(fullMessage + '\n');
+    claude.stdin.end();
+
+    claude.stdout.on('data', (chunk) => {
+      response += chunk.toString();
+    });
+
+    claude.stderr.on('data', (chunk) => {
+      errorOutput += chunk.toString();
+    });
+
+    claude.on('close', (code) => {
+      if (code === 0 && response) {
+        try {
+          const jsonResponse = JSON.parse(response);
+          const summary = jsonResponse.result || response;
+          res.json({ summary });
+        } catch (parseErr) {
+          res.json({ summary: response.trim() });
+        }
+      } else {
+        res.status(500).json({ error: errorOutput || 'Failed to summarize file' });
+      }
+    });
+
+    claude.on('error', (err) => {
+      console.error('Failed to start Claude CLI:', err);
+      res.status(500).json({ error: 'Failed to start Claude CLI' });
+    });
+
+  } catch (err) {
+    console.error('Error summarizing file:', err);
+    res.status(500).json({ error: 'Failed to summarize file' });
   }
 });
 
