@@ -76,6 +76,8 @@ function ChatView() {
   const [fileSummary, setFileSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [showHtmlPreview, setShowHtmlPreview] = useState(false)
+  const [processedHtml, setProcessedHtml] = useState<string | null>(null)
+  const [isLoadingCss, setIsLoadingCss] = useState(false)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -256,6 +258,52 @@ function ChatView() {
     } catch (err) {
       console.error('Error saving summary:', err)
       alert('Failed to save summary. Please try again.')
+    }
+  }
+
+  const processHtmlWithCss = async (htmlContent: string, htmlFilePath: string): Promise<string> => {
+    try {
+      // Parse HTML to find CSS link tags
+      const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi
+      const matches = [...htmlContent.matchAll(linkRegex)]
+
+      if (matches.length === 0) {
+        return htmlContent
+      }
+
+      let processedHtml = htmlContent
+      const htmlDir = htmlFilePath.substring(0, htmlFilePath.lastIndexOf('\\'))
+
+      // Fetch all CSS files
+      for (const match of matches) {
+        const cssPath = match[1]
+        const fullTag = match[0]
+
+        try {
+          // Resolve relative path
+          let resolvedPath = cssPath
+          if (!cssPath.startsWith('http') && !cssPath.startsWith('/')) {
+            resolvedPath = htmlDir + '\\' + cssPath
+          }
+
+          // Fetch CSS content
+          const response = await axios.get('http://localhost:3001/api/files/content', {
+            params: { path: resolvedPath }
+          })
+
+          // Replace link tag with inline style tag
+          const styleTag = `<style>\n${response.data.content}\n</style>`
+          processedHtml = processedHtml.replace(fullTag, styleTag)
+        } catch (err) {
+          console.error(`Failed to load CSS: ${cssPath}`, err)
+          // Keep the original link tag if CSS fails to load
+        }
+      }
+
+      return processedHtml
+    } catch (err) {
+      console.error('Error processing HTML with CSS:', err)
+      return htmlContent // Return original HTML if processing fails
     }
   }
 
@@ -801,13 +849,20 @@ function ChatView() {
                         {getFileExtension(selectedFile.path) === 'html' && (
                           <button
                             className="preview-file-btn"
-                            onClick={() => setShowHtmlPreview(true)}
+                            onClick={async () => {
+                              setIsLoadingCss(true)
+                              setShowHtmlPreview(true)
+                              const processed = await processHtmlWithCss(selectedFile.content, selectedFile.path)
+                              setProcessedHtml(processed)
+                              setIsLoadingCss(false)
+                            }}
+                            disabled={isLoadingCss}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                               <circle cx="12" cy="12" r="3"/>
                             </svg>
-                            Preview
+                            {isLoadingCss ? 'Loading...' : 'Preview'}
                           </button>
                         )}
                         <button
@@ -985,11 +1040,17 @@ function ChatView() {
                 </button>
               </div>
               <div className="html-preview-body">
-                <iframe
-                  srcDoc={selectedFile.content}
-                  title="HTML Preview"
-                  sandbox="allow-scripts allow-same-origin"
-                />
+                {isLoadingCss ? (
+                  <div className="html-preview-loading">
+                    <p>Loading CSS files...</p>
+                  </div>
+                ) : (
+                  <iframe
+                    srcDoc={processedHtml || selectedFile.content}
+                    title="HTML Preview"
+                    sandbox="allow-scripts allow-same-origin"
+                  />
+                )}
               </div>
             </div>
           </div>

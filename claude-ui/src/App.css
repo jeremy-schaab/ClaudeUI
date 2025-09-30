@@ -1126,14 +1126,28 @@ body {
   gap: 6px;
 }
 
-.preview-file-btn:hover {
+.preview-file-btn:hover:not(:disabled) {
   background-color: #059669;
   border-color: #059669;
+}
+
+.preview-file-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .preview-file-btn svg {
   width: 14px;
   height: 14px;
+}
+
+.html-preview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  font-size: 14px;
 }
 
 .file-viewer-content {
