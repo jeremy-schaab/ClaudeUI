@@ -67,6 +67,11 @@ function ChatView() {
   const [availableAgents, setAvailableAgents] = useState<Array<{name: string, description: string, source: string}>>([])
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
   const [showAgentDropdown, setShowAgentDropdown] = useState(false)
+  const [availableCommands, setAvailableCommands] = useState<Array<{name: string, fullName: string, description: string, argumentHint?: string}>>([])
+  const [showCommandPanel, setShowCommandPanel] = useState(false)
+  const [commandArgs, setCommandArgs] = useState<string>('')
+  const [showArgsDialog, setShowArgsDialog] = useState(false)
+  const [selectedCommand, setSelectedCommand] = useState<{name: string, fullName: string, argumentHint?: string} | null>(null)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -138,6 +143,21 @@ function ChatView() {
 
   useEffect(() => {
     loadAgents()
+  }, [])
+
+  // Load available slash commands
+  const loadCommands = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/slash-commands')
+      console.log('Available commands:', response.data)
+      setAvailableCommands(response.data)
+    } catch (err) {
+      console.error('Failed to load commands:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadCommands()
   }, [])
 
   const toggleDirectory = (dirPath: string) => {

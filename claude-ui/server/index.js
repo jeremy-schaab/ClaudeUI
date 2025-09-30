@@ -531,6 +531,108 @@ app.get('/api/agents', (req, res) => {
   }
 });
 
+// Slash commands endpoint - list available commands from .claude/commands
+app.get('/api/slash-commands', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const commandsPath = path.join(rootPath, '.claude', 'commands');
+
+    const commands = [];
+
+    // Helper to parse command frontmatter and get namespaced name
+    function parseCommand(filePath, relativePath) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const lines = content.split(/\r?\n/);
+
+        const command = {
+          relativePath: relativePath
+        };
+
+        // Parse frontmatter if it exists
+        if (lines[0].trim() === '---') {
+          const endIndex = lines.findIndex((line, idx) => idx > 0 && line.trim() === '---');
+          if (endIndex > 0) {
+            const frontmatter = lines.slice(1, endIndex);
+
+            for (const line of frontmatter) {
+              const match = line.match(/^([a-zA-Z_-]+):\s*(.+)$/);
+              if (match) {
+                const [, key, value] = match;
+                command[key] = value.trim();
+              }
+            }
+          }
+        }
+
+        // Generate command name from file path
+        // .claude/commands/optimize.md -> /optimize
+        // .claude/commands/frontend/component.md -> /frontend:component
+        const pathWithoutExt = relativePath.replace(/\.md$/, '');
+        const parts = pathWithoutExt.split(path.sep);
+
+        if (parts.length === 1) {
+          command.name = parts[0];
+          command.fullName = `/${parts[0]}`;
+        } else {
+          // Namespaced command
+          const namespace = parts.slice(0, -1).join(':');
+          const cmdName = parts[parts.length - 1];
+          command.name = cmdName;
+          command.fullName = `/${namespace}:${cmdName}`;
+        }
+
+        // Use description from frontmatter or first non-empty line after frontmatter
+        if (!command.description) {
+          const contentStart = command.frontmatterEnd || 0;
+          for (let i = contentStart; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line && !line.startsWith('#')) {
+              command.description = line.substring(0, 100);
+              break;
+            }
+          }
+        }
+
+        return command;
+      } catch (err) {
+        console.error(`Error parsing command ${filePath}:`, err);
+      }
+      return null;
+    }
+
+    // Recursively read commands directory
+    function readCommandsDir(dirPath, relativeBase = '') {
+      if (!fs.existsSync(dirPath)) {
+        return;
+      }
+
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+
+      for (const item of items) {
+        const itemPath = path.join(dirPath, item.name);
+        const itemRelative = relativeBase ? path.join(relativeBase, item.name) : item.name;
+
+        if (item.isDirectory()) {
+          readCommandsDir(itemPath, itemRelative);
+        } else if (item.isFile() && item.name.endsWith('.md')) {
+          const command = parseCommand(itemPath, itemRelative);
+          if (command) {
+            commands.push(command);
+          }
+        }
+      }
+    }
+
+    readCommandsDir(commandsPath);
+
+    res.json(commands);
+  } catch (err) {
+    console.error('Error fetching slash commands:', err);
+    res.status(500).json({ error: 'Failed to fetch slash commands' });
+  }
+});
+
 const PORT = 3001;
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
