@@ -526,6 +526,34 @@ app.post('/api/summarize', async (req, res) => {
   }
 });
 
+// Save summary endpoint
+app.post('/api/save-summary', (req, res) => {
+  try {
+    const { path: filePath, content } = req.body;
+    if (!filePath || !content) {
+      return res.status(400).json({ error: 'Path and content are required' });
+    }
+
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const fullPath = path.join(rootPath, filePath);
+
+    // Create directories if they don't exist
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Write the summary to file
+    fs.writeFileSync(fullPath, content, 'utf8');
+    console.log('Summary saved to:', fullPath);
+
+    res.json({ success: true, path: fullPath });
+  } catch (err) {
+    console.error('Error saving summary:', err);
+    res.status(500).json({ error: 'Failed to save summary file' });
+  }
+});
+
 // File tree endpoint
 app.get('/api/files', (req, res) => {
   try {

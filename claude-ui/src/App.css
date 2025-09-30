@@ -982,6 +982,37 @@ body {
   margin: 0;
 }
 
+.file-summary-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.save-summary-btn {
+  padding: 6px 12px;
+  background-color: #d97706;
+  color: #ffffff;
+  border: 1px solid #d97706;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.save-summary-btn:hover {
+  background-color: #b45309;
+  border-color: #b45309;
+}
+
+.save-summary-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .close-summary-btn {
   padding: 4px;
   background: none;

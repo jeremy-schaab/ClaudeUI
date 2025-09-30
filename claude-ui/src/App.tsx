@@ -239,6 +239,25 @@ function ChatView() {
     }
   }
 
+  const handleSaveSummary = async (defaultPath: string) => {
+    if (!fileSummary) return
+
+    const userPath = prompt('Save summary to:', defaultPath)
+    if (!userPath) return
+
+    try {
+      await axios.post('http://localhost:3001/api/save-summary', {
+        path: userPath,
+        content: fileSummary
+      })
+      alert(`Summary saved to ${userPath}`)
+      loadFileTree() // Refresh file tree
+    } catch (err) {
+      console.error('Error saving summary:', err)
+      alert('Failed to save summary. Please try again.')
+    }
+  }
+
   const getFileExtension = (path: string): string => {
     const parts = path.split('.')
     return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
@@ -830,15 +849,31 @@ function ChatView() {
                   <div className="file-summary-panel">
                     <div className="file-summary-header">
                       <h3>File Summary</h3>
-                      <button className="close-summary-btn" onClick={() => setFileSummary(null)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <line x1="18" y1="6" x2="6" y2="18"/>
-                          <line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                      </button>
+                      <div className="file-summary-actions">
+                        <button className="save-summary-btn" onClick={() => {
+                          const relativePath = selectedFile.path.replace(/\\/g, '/')
+                          const summaryPath = `docs/ai/summaries/${relativePath}.md`
+                          handleSaveSummary(summaryPath)
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                          </svg>
+                          Save As
+                        </button>
+                        <button className="close-summary-btn" onClick={() => setFileSummary(null)}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div className="file-summary-content">
-                      <MarkdownMessage content={fileSummary} />
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {fileSummary}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}
