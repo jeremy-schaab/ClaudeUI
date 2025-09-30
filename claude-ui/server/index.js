@@ -559,7 +559,9 @@ app.get('/api/slash-commands', (req, res) => {
               const match = line.match(/^([a-zA-Z_-]+):\s*(.+)$/);
               if (match) {
                 const [, key, value] = match;
-                command[key] = value.trim();
+                // Convert kebab-case to camelCase for frontend
+                const camelKey = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                command[camelKey] = value.trim();
               }
             }
           }
