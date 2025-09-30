@@ -69,9 +69,7 @@ function ChatView() {
   const [showAgentDropdown, setShowAgentDropdown] = useState(false)
   const [availableCommands, setAvailableCommands] = useState<Array<{name: string, fullName: string, description: string, argumentHint?: string}>>([])
   const [showCommandPanel, setShowCommandPanel] = useState(false)
-  const [commandArgs, setCommandArgs] = useState<string>('')
-  const [showArgsDialog, setShowArgsDialog] = useState(false)
-  const [selectedCommand, setSelectedCommand] = useState<{name: string, fullName: string, argumentHint?: string} | null>(null)
+  const [commandFilter, setCommandFilter] = useState<string>('')
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -450,31 +448,19 @@ function ChatView() {
     setInput('')
   }
 
-  // Handle command button click - show args dialog if needed, otherwise send immediately
+  // Handle command button click - insert command into textarea
   const handleCommandClick = (command: {name: string, fullName: string, argumentHint?: string}) => {
-    if (command.argumentHint) {
-      setSelectedCommand(command)
-      setCommandArgs('')
-      setShowArgsDialog(true)
-    } else {
-      // No args needed, send immediately
-      sendSlashCommand(command.fullName, '')
-    }
-  }
+    // Insert command into textarea with a space for arguments
+    setInput(command.fullName + ' ')
+    setShowCommandPanel(false)
 
-  // Send slash command as message
-  const sendSlashCommand = (commandName: string, args: string) => {
-    const message = args ? `${commandName} ${args}` : commandName
-    setInput(message)
-    setShowArgsDialog(false)
-    setSelectedCommand(null)
-    setCommandArgs('')
-
-    // Trigger form submission programmatically
+    // Focus the textarea
     setTimeout(() => {
-      const form = document.querySelector('form') as HTMLFormElement
-      if (form) {
-        form.requestSubmit()
+      const textarea = document.querySelector('textarea')
+      if (textarea) {
+        textarea.focus()
+        // Move cursor to end
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length
       }
     }, 0)
   }
@@ -1049,69 +1035,60 @@ function ChatView() {
               </button>
               {showCommandPanel && (
                 <div className="commands-panel">
-                  {availableCommands.map(command => (
-                    <button
-                      key={command.fullName}
-                      type="button"
-                      className="command-btn"
-                      onClick={() => handleCommandClick(command)}
-                      title={command.description}
-                    >
-                      <div className="command-btn-header">
-                        <span className="command-name">{command.fullName}</span>
-                        {command.argumentHint && (
-                          <span className="command-args-hint">{command.argumentHint}</span>
-                        )}
-                      </div>
-                      {command.description && (
-                        <div className="command-description">{command.description}</div>
-                      )}
-                    </button>
-                  ))}
+                  <div className="commands-search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Filter commands..."
+                      value={commandFilter}
+                      onChange={(e) => setCommandFilter(e.target.value)}
+                    />
+                    {commandFilter && (
+                      <button
+                        type="button"
+                        className="clear-filter"
+                        onClick={() => setCommandFilter('')}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="commands-grid">
+                    {availableCommands
+                      .filter(command =>
+                        !commandFilter ||
+                        command.fullName.toLowerCase().includes(commandFilter.toLowerCase()) ||
+                        command.description?.toLowerCase().includes(commandFilter.toLowerCase())
+                      )
+                      .map(command => (
+                        <button
+                          key={command.fullName}
+                          type="button"
+                          className="command-btn"
+                          onClick={() => handleCommandClick(command)}
+                          title={command.description}
+                        >
+                          <div className="command-btn-header">
+                            <span className="command-name">{command.fullName}</span>
+                            {command.argumentHint && (
+                              <span className="command-args-hint">{command.argumentHint}</span>
+                            )}
+                          </div>
+                          {command.description && (
+                            <div className="command-description">{command.description}</div>
+                          )}
+                        </button>
+                      ))
+                    }
+                  </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Arguments Dialog */}
-          {showArgsDialog && selectedCommand && (
-            <div className="modal-overlay" onClick={() => setShowArgsDialog(false)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <h3>Arguments for {selectedCommand.fullName}</h3>
-                {selectedCommand.argumentHint && (
-                  <p className="args-hint">{selectedCommand.argumentHint}</p>
-                )}
-                <input
-                  type="text"
-                  value={commandArgs}
-                  onChange={(e) => setCommandArgs(e.target.value)}
-                  placeholder="Enter arguments..."
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      sendSlashCommand(selectedCommand.fullName, commandArgs)
-                    } else if (e.key === 'Escape') {
-                      setShowArgsDialog(false)
-                    }
-                  }}
-                />
-                <div className="modal-actions">
-                  <button
-                    type="button"
-                    onClick={() => setShowArgsDialog(false)}
-                    className="modal-btn modal-btn-cancel"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => sendSlashCommand(selectedCommand.fullName, commandArgs)}
-                    className="modal-btn modal-btn-primary"
-                  >
-                    Run Command
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
