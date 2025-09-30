@@ -43,6 +43,7 @@ interface CliCall {
   context_files?: string
   full_stdin?: string
   model?: string
+  cli_session_id?: string
 }
 
 interface Setting {
@@ -410,6 +411,12 @@ function Admin({ onBackToChat }: AdminProps) {
                   <div className="detail-item">
                     <label>Model:</label>
                     <span className="model-text">{selectedCall.model}</span>
+                  </div>
+                )}
+                {selectedCall.cli_session_id && (
+                  <div className="detail-item full-width">
+                    <label>CLI Session ID:</label>
+                    <code className="session-id-text">{selectedCall.cli_session_id}</code>
                   </div>
                 )}
               </div>

@@ -56,6 +56,14 @@ io.on('connection', (socket) => {
     // Execute Claude CLI command with settings
     const args = cliArgs ? cliArgs.split(' ') : [];
 
+    // Add --print and --output-format json for structured output with session ID
+    if (!args.includes('--print')) {
+      args.push('--print');
+    }
+    if (!args.includes('--output-format')) {
+      args.push('--output-format', 'json');
+    }
+
     // Add model parameter if provided
     if (data.model) {
       args.push('--model', data.model);
@@ -71,6 +79,7 @@ io.on('connection', (socket) => {
 
     let response = '';
     let errorOutput = '';
+    let sessionId = null;
 
     // Prepare message with context files if provided
     let messageToSend = data.content;
@@ -99,6 +108,23 @@ io.on('connection', (socket) => {
       const durationMs = Date.now() - startTime;
       console.log('Claude process exited with code:', code);
 
+      let actualResponse = response.trim();
+
+      // Parse JSON response to extract session_id and result
+      try {
+        const jsonResponse = JSON.parse(response);
+        if (jsonResponse.session_id) {
+          sessionId = jsonResponse.session_id;
+          console.log('Captured session ID:', sessionId);
+        }
+        if (jsonResponse.result) {
+          actualResponse = jsonResponse.result;
+        }
+      } catch (parseErr) {
+        // If not JSON, use response as-is
+        console.log('Response is not JSON, using as-is');
+      }
+
       // Log to database
       try {
         logCliCall({
@@ -106,21 +132,22 @@ io.on('connection', (socket) => {
           cliCommand: cliCommand,
           cliArgs: cliArgs,
           executionPath: executionPath,
-          response: response.trim(),
+          response: actualResponse,
           error: errorOutput,
           exitCode: code,
           durationMs: durationMs,
           success: code === 0 && response.length > 0,
           contextFiles: data.contextFiles || [],
           fullStdin: messageToSend,
-          model: data.model || null
+          model: data.model || null,
+          cliSessionId: sessionId
         });
       } catch (err) {
         console.error('Failed to log CLI call to database:', err);
       }
 
-      if (code === 0 && response) {
-        socket.emit('response', { content: response.trim() });
+      if (code === 0 && actualResponse) {
+        socket.emit('response', { content: actualResponse, sessionId: sessionId });
       } else {
         socket.emit('error', {
           error: errorOutput || 'Failed to get response from Claude CLI'

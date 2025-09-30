@@ -107,6 +107,25 @@ try {
   }
 }
 
+// Migration: Add cli_session_id columns
+try {
+  db.exec(`ALTER TABLE conversations ADD COLUMN cli_session_id TEXT`);
+  console.log('Added cli_session_id column to conversations table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('cli_session_id column may already exist in conversations');
+  }
+}
+
+try {
+  db.exec(`ALTER TABLE cli_calls ADD COLUMN cli_session_id TEXT`);
+  console.log('Added cli_session_id column to cli_calls table');
+} catch (err) {
+  if (!err.message.includes('duplicate column')) {
+    console.log('cli_session_id column may already exist in cli_calls');
+  }
+}
+
 // Migration: Add model column to conversations table
 try {
   db.exec(`ALTER TABLE conversations ADD COLUMN model TEXT`);
@@ -161,8 +180,9 @@ const insertCliCall = db.prepare(`
     success,
     context_files,
     full_stdin,
-    model
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    model,
+    cli_session_id
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const getAllCalls = db.prepare('SELECT * FROM cli_calls ORDER BY timestamp DESC');
@@ -284,7 +304,8 @@ function logCliCall(data) {
       data.success ? 1 : 0,
       data.contextFiles ? JSON.stringify(data.contextFiles) : null,
       data.fullStdin || null,
-      data.model || null
+      data.model || null,
+      data.cliSessionId || null
     );
     return result.lastInsertRowid;
   } catch (err) {
