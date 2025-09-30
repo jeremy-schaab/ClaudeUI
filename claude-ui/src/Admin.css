@@ -684,3 +684,39 @@
   margin: 12px;
   border-radius: 4px;
 }
+
+/* Folder Input Group */
+.folder-input-group {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.folder-input-group .folder-input {
+  flex: 1;
+}
+
+.browse-folder-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background-color: #ffffff;
+  border: 1px solid #d6d3d1;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #57534e;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.browse-folder-btn:hover {
+  background-color: #f5f5f4;
+  border-color: #a8a29e;
+}
+
+.browse-folder-btn svg {
+  flex-shrink: 0;
+}

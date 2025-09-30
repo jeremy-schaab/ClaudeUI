@@ -359,6 +359,16 @@ app.put('/api/settings/:key', (req, res) => {
   }
 });
 
+// Get current working directory for CLI_ROOT suggestions
+app.get('/api/current-directory', (req, res) => {
+  try {
+    res.json({ path: process.cwd() });
+  } catch (err) {
+    console.error('Error getting current directory:', err);
+    res.status(500).json({ error: 'Failed to get current directory' });
+  }
+});
+
 // File tree endpoint
 app.get('/api/files', (req, res) => {
   try {

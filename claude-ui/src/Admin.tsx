@@ -182,6 +182,25 @@ function Admin({ onBackToChat }: AdminProps) {
     }
   }
 
+  const handleUseCurrentDirectory = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/current-directory')
+      if (response.data.path) {
+        handleSettingChange('CLI_ROOT', response.data.path)
+        setSaveMessage('Current directory path inserted')
+        setTimeout(() => setSaveMessage(null), 2000)
+      }
+    } catch (err) {
+      console.error('Error getting current directory:', err)
+      setError('Failed to get current directory')
+    }
+  }
+
+  const handleSelectAllPath = (e: React.MouseEvent<HTMLInputElement>) => {
+    const input = e.currentTarget
+    input.select()
+  }
+
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString()
   }
@@ -317,6 +336,30 @@ function Admin({ onBackToChat }: AdminProps) {
                         </option>
                       ))}
                     </select>
+                  ) : setting.key === 'CLI_ROOT' ? (
+                    <div className="folder-input-group">
+                      <input
+                        id={setting.key}
+                        type="text"
+                        value={editingSettings[setting.key] || ''}
+                        onChange={(e) => handleSettingChange(setting.key, e.target.value)}
+                        onClick={handleSelectAllPath}
+                        onFocus={(e) => e.target.select()}
+                        className="setting-input folder-input"
+                        placeholder="Enter folder path..."
+                      />
+                      <button
+                        onClick={handleUseCurrentDirectory}
+                        className="browse-folder-btn"
+                        type="button"
+                        title="Use current working directory"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Use CWD
+                      </button>
+                    </div>
                   ) : (
                     <input
                       id={setting.key}
