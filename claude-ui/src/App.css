@@ -1172,3 +1172,81 @@ body {
   line-height: 1.4;
 }
 
+/* Command Hint Box */
+.command-hint {
+  margin-top: 8px;
+  padding: 12px;
+  background-color: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  font-size: 13px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.command-hint-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.command-hint-header svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.command-hint-name {
+  font-weight: 600;
+  color: #92400e;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  flex: 1;
+}
+
+.command-hint-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.command-hint-close:hover {
+  background-color: #fde68a;
+}
+
+.command-hint-args {
+  font-size: 12px;
+  color: #78350f;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  background-color: #fde68a;
+  border-radius: 4px;
+}
+
+.command-hint-args strong {
+  color: #92400e;
+}
+
+.command-hint-desc {
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.5;
+}
+

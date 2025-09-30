@@ -70,6 +70,7 @@ function ChatView() {
   const [availableCommands, setAvailableCommands] = useState<Array<{name: string, fullName: string, description: string, argumentHint?: string}>>([])
   const [showCommandPanel, setShowCommandPanel] = useState(false)
   const [commandFilter, setCommandFilter] = useState<string>('')
+  const [selectedCommandHint, setSelectedCommandHint] = useState<{name: string, argumentHint: string, description: string} | null>(null)
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -378,6 +379,13 @@ function ChatView() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Clear command hint if user removes the command from input
+  useEffect(() => {
+    if (selectedCommandHint && !input.startsWith(selectedCommandHint.name)) {
+      setSelectedCommandHint(null)
+    }
+  }, [input, selectedCommandHint])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isProcessing || !isConnected) return
@@ -391,6 +399,7 @@ function ChatView() {
 
     setMessages(prev => [...prev, userMessage])
     setIsProcessing(true)
+    setSelectedCommandHint(null) // Clear hint on submit
 
     // Create conversation if this is the first message
     if (!currentConversationId) {
@@ -449,10 +458,19 @@ function ChatView() {
   }
 
   // Handle command button click - insert command into textarea
-  const handleCommandClick = (command: {name: string, fullName: string, argumentHint?: string}) => {
+  const handleCommandClick = (command: {name: string, fullName: string, description: string, argumentHint?: string}) => {
     // Insert command into textarea with a space for arguments
     setInput(command.fullName + ' ')
     setShowCommandPanel(false)
+
+    // Show hint if command has arguments or description
+    if (command.argumentHint || command.description) {
+      setSelectedCommandHint({
+        name: command.fullName,
+        argumentHint: command.argumentHint || '',
+        description: command.description || ''
+      })
+    }
 
     // Focus the textarea
     setTimeout(() => {
@@ -1235,6 +1253,37 @@ function ChatView() {
               />
             </div>
           </form>
+
+          {/* Command Hint */}
+          {selectedCommandHint && (
+            <div className="command-hint">
+              <div className="command-hint-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 16v-4M12 8h.01"/>
+                </svg>
+                <span className="command-hint-name">{selectedCommandHint.name}</span>
+                <button
+                  type="button"
+                  className="command-hint-close"
+                  onClick={() => setSelectedCommandHint(null)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              {selectedCommandHint.argumentHint && (
+                <div className="command-hint-args">
+                  <strong>Arguments:</strong> {selectedCommandHint.argumentHint}
+                </div>
+              )}
+              {selectedCommandHint.description && (
+                <div className="command-hint-desc">{selectedCommandHint.description}</div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
