@@ -1026,3 +1026,200 @@ body {
   color: #92400e;
   font-weight: 500;
 }
+
+/* Slash Commands Panel */
+.commands-panel-wrapper {
+  margin-bottom: 12px;
+}
+
+.commands-panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #f5f5f4;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #57534e;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.commands-panel-toggle:hover {
+  background-color: #e7e5e4;
+  border-color: #d6d3d1;
+}
+
+.commands-panel {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  background-color: #fafaf9;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.command-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e7e5e4;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.command-btn:hover {
+  background-color: #fef3c7;
+  border-color: #cc5f47;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.command-btn-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.command-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1917;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.command-args-hint {
+  font-size: 11px;
+  color: #78716c;
+  background-color: #f5f5f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.command-description {
+  font-size: 12px;
+  color: #57534e;
+  line-height: 1.4;
+}
+
+/* Modal for Arguments */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  animation: slideUp 0.2s;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #1c1917;
+}
+
+.modal-content .args-hint {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: #78716c;
+  font-style: italic;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #e7e5e4;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.modal-content input:focus {
+  outline: none;
+  border-color: #cc5f47;
+  box-shadow: 0 0 0 2px rgba(204, 95, 71, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn-cancel {
+  background-color: #f5f5f4;
+  color: #57534e;
+}
+
+.modal-btn-cancel:hover {
+  background-color: #e7e5e4;
+}
+
+.modal-btn-primary {
+  background-color: #cc5f47;
+  color: #ffffff;
+}
+
+.modal-btn-primary:hover {
+  background-color: #b54e3a;
+}

@@ -450,6 +450,35 @@ function ChatView() {
     setInput('')
   }
 
+  // Handle command button click - show args dialog if needed, otherwise send immediately
+  const handleCommandClick = (command: {name: string, fullName: string, argumentHint?: string}) => {
+    if (command.argumentHint) {
+      setSelectedCommand(command)
+      setCommandArgs('')
+      setShowArgsDialog(true)
+    } else {
+      // No args needed, send immediately
+      sendSlashCommand(command.fullName, '')
+    }
+  }
+
+  // Send slash command as message
+  const sendSlashCommand = (commandName: string, args: string) => {
+    const message = args ? `${commandName} ${args}` : commandName
+    setInput(message)
+    setShowArgsDialog(false)
+    setSelectedCommand(null)
+    setCommandArgs('')
+
+    // Trigger form submission programmatically
+    setTimeout(() => {
+      const form = document.querySelector('form') as HTMLFormElement
+      if (form) {
+        form.requestSubmit()
+      }
+    }, 0)
+  }
+
   const handleNewChat = () => {
     if (isProcessing) return
 
@@ -994,6 +1023,98 @@ function ChatView() {
         </div>
 
         <div className="input-container">
+          {/* Slash Commands Panel */}
+          {availableCommands.length > 0 && (
+            <div className="commands-panel-wrapper">
+              <button
+                type="button"
+                className="commands-panel-toggle"
+                onClick={() => setShowCommandPanel(!showCommandPanel)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10 9l-6 6 6 6M14 9l6 6-6 6" />
+                </svg>
+                Slash Commands ({availableCommands.length})
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{transform: showCommandPanel ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s'}}
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {showCommandPanel && (
+                <div className="commands-panel">
+                  {availableCommands.map(command => (
+                    <button
+                      key={command.fullName}
+                      type="button"
+                      className="command-btn"
+                      onClick={() => handleCommandClick(command)}
+                      title={command.description}
+                    >
+                      <div className="command-btn-header">
+                        <span className="command-name">{command.fullName}</span>
+                        {command.argumentHint && (
+                          <span className="command-args-hint">{command.argumentHint}</span>
+                        )}
+                      </div>
+                      {command.description && (
+                        <div className="command-description">{command.description}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Arguments Dialog */}
+          {showArgsDialog && selectedCommand && (
+            <div className="modal-overlay" onClick={() => setShowArgsDialog(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3>Arguments for {selectedCommand.fullName}</h3>
+                {selectedCommand.argumentHint && (
+                  <p className="args-hint">{selectedCommand.argumentHint}</p>
+                )}
+                <input
+                  type="text"
+                  value={commandArgs}
+                  onChange={(e) => setCommandArgs(e.target.value)}
+                  placeholder="Enter arguments..."
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      sendSlashCommand(selectedCommand.fullName, commandArgs)
+                    } else if (e.key === 'Escape') {
+                      setShowArgsDialog(false)
+                    }
+                  }}
+                />
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    onClick={() => setShowArgsDialog(false)}
+                    className="modal-btn modal-btn-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => sendSlashCommand(selectedCommand.fullName, commandArgs)}
+                    className="modal-btn modal-btn-primary"
+                  >
+                    Run Command
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="input-header">
               <button type="button" className="input-action-btn">
