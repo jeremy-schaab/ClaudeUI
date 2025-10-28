@@ -72,6 +72,9 @@ function ChatView() {
   const [showCommandPanel, setShowCommandPanel] = useState(false)
   const [commandFilter, setCommandFilter] = useState<string>('')
   const [selectedCommandHint, setSelectedCommandHint] = useState<{name: string, argumentHint: string, description: string} | null>(null)
+  const [availableSkills, setAvailableSkills] = useState<Array<{name: string, description: string, source: string, type?: string}>>([])
+  const [showSkillsPanel, setShowSkillsPanel] = useState(false)
+  const [skillFilter, setSkillFilter] = useState<string>('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [fileSummary, setFileSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
@@ -164,6 +167,21 @@ function ChatView() {
 
   useEffect(() => {
     loadCommands()
+  }, [])
+
+  // Load available skills
+  const loadSkills = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/skills')
+      console.log('Available skills:', response.data)
+      setAvailableSkills(response.data)
+    } catch (err) {
+      console.error('Failed to load skills:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadSkills()
   }, [])
 
   const toggleDirectory = (dirPath: string) => {
@@ -574,6 +592,24 @@ function ChatView() {
         textarea.selectionStart = textarea.selectionEnd = textarea.value.length
       }
     }, 0)
+  }
+
+  // Handle skill button click - invoke skill directly
+  const handleSkillClick = (skill: {name: string, description: string}) => {
+    if (!isConnected || isProcessing) return
+
+    // Invoke skill by sending special message format
+    const skillMessage = `[SKILL:${skill.name}] Please invoke the ${skill.name} skill.`
+    setInput(skillMessage)
+    setShowSkillsPanel(false)
+
+    // Submit immediately
+    setTimeout(() => {
+      const form = document.querySelector('form')
+      if (form) {
+        form.requestSubmit()
+      }
+    }, 100)
   }
 
   const handleNewChat = () => {
@@ -1243,6 +1279,92 @@ function ChatView() {
         </div>
 
         <div className="input-container">
+          {/* Skills Panel */}
+          {availableSkills.length > 0 && (
+            <div className="commands-panel-wrapper">
+              <button
+                type="button"
+                className="commands-panel-toggle"
+                onClick={() => setShowSkillsPanel(!showSkillsPanel)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+                Claude Skills ({availableSkills.length})
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{transform: showSkillsPanel ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s'}}
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {showSkillsPanel && (
+                <div className="commands-panel">
+                  <div className="commands-search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Filter skills..."
+                      value={skillFilter}
+                      onChange={(e) => setSkillFilter(e.target.value)}
+                    />
+                    {skillFilter && (
+                      <button
+                        type="button"
+                        className="clear-filter"
+                        onClick={() => setSkillFilter('')}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="commands-grid">
+                    {availableSkills
+                      .filter(skill =>
+                        !skillFilter ||
+                        skill.name.toLowerCase().includes(skillFilter.toLowerCase()) ||
+                        skill.description?.toLowerCase().includes(skillFilter.toLowerCase())
+                      )
+                      .map(skill => (
+                        <button
+                          key={skill.name}
+                          type="button"
+                          className="command-btn"
+                          onClick={() => handleSkillClick(skill)}
+                          title={skill.description}
+                        >
+                          <div className="command-btn-header">
+                            <span className="command-name">{skill.name}</span>
+                            {skill.type && (
+                              <span className="command-args-hint">{skill.type}</span>
+                            )}
+                          </div>
+                          {skill.description && (
+                            <div className="command-description">{skill.description}</div>
+                          )}
+                          <div className="agent-source">Source: {skill.source}</div>
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Slash Commands Panel */}
           {availableCommands.length > 0 && (
             <div className="commands-panel-wrapper">

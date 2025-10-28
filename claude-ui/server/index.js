@@ -857,6 +857,87 @@ app.get('/api/slash-commands', (req, res) => {
   }
 });
 
+// Skills endpoint - list available skills from .claude/skills
+app.get('/api/skills', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const projectSkillsPath = path.join(rootPath, '.claude', 'skills');
+    const userSkillsPath = path.join(require('os').homedir(), '.claude', 'skills');
+
+    const skills = [];
+
+    // Helper to parse skill frontmatter
+    function parseSkill(filePath, source) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const lines = content.split(/\r?\n/);
+
+        if (lines[0].trim() === '---') {
+          const endIndex = lines.findIndex((line, idx) => idx > 0 && line.trim() === '---');
+          if (endIndex > 0) {
+            const frontmatter = lines.slice(1, endIndex);
+            const skill = { source };
+
+            for (const line of frontmatter) {
+              const match = line.match(/^([a-zA-Z_-]+):\s*(.+)$/);
+              if (match) {
+                const [, key, value] = match;
+                skill[key] = value.trim();
+              }
+            }
+
+            // If no description in frontmatter, try to get it from content
+            if (!skill.description && endIndex < lines.length - 1) {
+              for (let i = endIndex + 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line && !line.startsWith('#')) {
+                  skill.description = line.substring(0, 100);
+                  break;
+                }
+              }
+            }
+
+            if (skill.name) {
+              return skill;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Error parsing skill ${filePath}:`, err);
+      }
+      return null;
+    }
+
+    // Read project skills (.claude/skills)
+    if (fs.existsSync(projectSkillsPath)) {
+      const files = fs.readdirSync(projectSkillsPath).filter(f => f.endsWith('.md'));
+      for (const file of files) {
+        const skill = parseSkill(path.join(projectSkillsPath, file), 'project');
+        if (skill) skills.push(skill);
+      }
+    }
+
+    // Read user skills (~/.claude/skills)
+    if (fs.existsSync(userSkillsPath)) {
+      const files = fs.readdirSync(userSkillsPath).filter(f => f.endsWith('.md'));
+      for (const file of files) {
+        const skill = parseSkill(path.join(userSkillsPath, file), 'user');
+        if (skill) {
+          // Only add if not already defined at project level
+          if (!skills.find(s => s.name === skill.name)) {
+            skills.push(skill);
+          }
+        }
+      }
+    }
+
+    res.json(skills);
+  } catch (err) {
+    console.error('Error fetching skills:', err);
+    res.status(500).json({ error: 'Failed to fetch skills' });
+  }
+});
+
 const PORT = 3001;
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

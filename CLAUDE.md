@@ -126,6 +126,52 @@ npm preview
 - Connection status tracked for UI state management
 - Processing state prevents concurrent message submissions
 
+### Claude Skills Integration
+
+ClaudeUI supports Claude Skills, allowing you to invoke custom skills directly from the UI:
+
+**Skills Discovery:**
+- Skills are discovered from `.claude/skills/*.md` (project-level)
+- Skills can also be placed in `~/.claude/skills/*.md` (user-level)
+- Skills panel displays all available skills with filtering capability
+
+**Skill File Format:**
+Skills are markdown files with frontmatter:
+```markdown
+---
+name: skill-name
+description: Brief description of what the skill does
+type: optional-category
+---
+
+# Skill Content
+
+Detailed information about the skill...
+```
+
+**Using Skills:**
+1. Click the "Claude Skills" panel above the input area
+2. Browse or search for available skills
+3. Click a skill to invoke it immediately
+4. Skills are invoked through the Claude CLI with appropriate commands
+
+**API Endpoints:**
+- `GET /api/skills` - Returns list of available skills from project and user directories
+- Skills are parsed with frontmatter metadata extraction similar to agents and commands
+
+### Agents and Slash Commands
+
+**Agents** (`@mentions`):
+- Agents are loaded from `.claude/agents/*.md` and `~/.claude/agents/*.md`
+- Select an agent from the dropdown to prefix messages with `@agent-name`
+- Agent selection persists for the conversation
+
+**Slash Commands**:
+- Commands are loaded from `.claude/commands/**/*.md`
+- Supports nested namespaces (e.g., `/frontend:component`)
+- Click the "Slash Commands" panel to browse and insert commands
+- Commands can have argument hints and descriptions
+
 ## Prerequisites
 
 - Node.js v16+
@@ -143,6 +189,10 @@ npm preview
 - ⚙️ Settings panel for API key management
 - 🗑️ Soft and hard delete for conversations
 - 🎯 TypeScript support for type safety
+- 🔧 Claude Skills support - invoke custom skills from the UI
+- 📂 File context selection and management
+- 🤖 Agent support with @mentions
+- ⚡ Slash commands integration
 
 ## Testing
 
