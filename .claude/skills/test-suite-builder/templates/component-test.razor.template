@@ -1,0 +1,39 @@
+using Bunit;
+using Xunit;
+using Moq;
+using FluentAssertions;
+using Telerik.Blazor.Components;
+{{ADDITIONAL_USINGS}}
+
+namespace {{NAMESPACE}}.Tests;
+
+/// <summary>
+/// Tests for {{COMPONENT_NAME}} Blazor component
+/// </summary>
+public class {{COMPONENT_NAME}}Tests : InMemortyComponentTestBase
+{
+{{MOCK_DECLARATIONS}}
+
+    public {{COMPONENT_NAME}}Tests()
+    {
+{{MOCK_INITIALIZATIONS}}
+{{SERVICE_REGISTRATIONS}}
+    }
+
+    [Fact]
+    public void {{COMPONENT_NAME}}_Renders_Successfully()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<{{COMPONENT_NAME}}>(parameters => parameters
+{{COMPONENT_PARAMETERS}}
+        );
+
+        // Assert
+        cut.Should().NotBeNull();
+{{RENDER_ASSERTIONS}}
+    }
+
+{{INTERACTION_TESTS}}
+
+{{HELPER_METHODS}}
+}

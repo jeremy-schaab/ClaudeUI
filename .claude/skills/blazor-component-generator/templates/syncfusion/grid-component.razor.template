@@ -1,0 +1,328 @@
+@using Microsoft.AspNetCore.Components
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Notifications
+@inject I{EntityName}Service {EntityName}Service
+@inject ILogger<{EntityName}Grid> Logger
+
+<div class="{EntityNameLower}-grid-container">
+    @if (IsLoading)
+    {
+        <div class="spinner-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading {EntityNameLower}s...</span>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> @ErrorMessage
+            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = string.Empty)"></button>
+        </div>
+    }
+
+    <SfGrid @ref="Grid"
+            DataSource="@{EntityNamePlural}"
+            AllowPaging="true"
+            AllowSorting="true"
+            AllowFiltering="true"
+            AllowResizing="true"
+            AllowReordering="true"
+            Toolbar="@GridToolbar">
+        <GridEditSettings AllowAdding="true"
+                         AllowEditing="true"
+                         AllowDeleting="true"
+                         Mode="EditMode.Dialog"
+                         Dialog="@DialogParams" />
+        <GridEvents OnActionBegin="OnActionBeginHandler"
+                   OnActionComplete="OnActionCompleteHandler"
+                   OnActionFailure="OnActionFailureHandler"
+                   TValue="{EntityName}" />
+        <GridPageSettings PageSize="@PageSize" PageSizes="@PageSizes" />
+        <GridFilterSettings Type="FilterType.Menu" />
+        <GridColumns>
+            <!-- PRIMARY_KEY_COLUMNS -->
+            <!-- ENTITY_PROPERTIES -->
+            <GridColumn HeaderText="Actions" Width="120" TextAlign="TextAlign.Center">
+                <GridCommandColumns>
+                    <GridCommandColumn Type="CommandButtonType.Edit" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-edit", CssClass = "e-flat" })" />
+                    <GridCommandColumn Type="CommandButtonType.Delete" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-delete", CssClass = "e-flat" })" />
+                </GridCommandColumns>
+            </GridColumn>
+        </GridColumns>
+    </SfGrid>
+</div>
+
+<!-- Delete Confirmation Dialog -->
+<SfDialog @bind-Visible="@ShowDeleteConfirmation"
+          Width="400px"
+          IsModal="true"
+          ShowCloseIcon="true"
+          CssClass="delete-confirmation-dialog">
+    <DialogTemplates>
+        <Header>
+            <div class="dialog-header-danger">
+                <span class="e-icons e-warning"></span>
+                <span>Confirm Delete</span>
+            </div>
+        </Header>
+        <Content>
+            <div class="confirmation-content">
+                <p>Are you sure you want to delete this {EntityNameLower}?</p>
+                @if ({EntityName}ToDelete != null)
+                {
+                    <div class="alert alert-warning mt-2">
+                        <small>This action cannot be undone.</small>
+                    </div>
+                }
+            </div>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Delete"
+                     OnClick="@ConfirmDelete"
+                     IsPrimary="true"
+                     CssClass="e-danger" />
+        <DialogButton Content="Cancel"
+                     OnClick="@CancelDelete" />
+    </DialogButtons>
+</SfDialog>
+
+<!-- Success/Info Toast Notification -->
+<SfToast @ref="ToastObj"
+         Title="@ToastTitle"
+         Content="@ToastContent"
+         Position="@ToastPosition"
+         Timeout="@ToastTimeout">
+</SfToast>
+
+@code {
+    [Parameter]
+    public EventCallback<{EntityName}> OnItemSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<{EntityName}> OnItemCreated { get; set; }
+
+    [Parameter]
+    public EventCallback<{EntityName}> OnItemUpdated { get; set; }
+
+    [Parameter]
+    public EventCallback<{EntityName}> OnItemDeleted { get; set; }
+
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    [Parameter]
+    public bool ShowToolbar { get; set; } = true;
+
+    private SfGrid<{EntityName}>? Grid;
+    private SfToast? ToastObj;
+    private List<{EntityName}> {EntityNamePlural} = new();
+    private bool IsLoading = false;
+    private string ErrorMessage = string.Empty;
+    private bool ShowDeleteConfirmation = false;
+    private {EntityName}? {EntityName}ToDelete;
+
+    // Grid configuration
+    private List<string> GridToolbar => ShowToolbar
+        ? new List<string> { "Add", "Edit", "Delete", "Update", "Cancel", "Search" }
+        : new List<string>();
+
+    private List<int> PageSizes = new() { 5, 10, 20, 50, 100 };
+
+    private DialogSettings DialogParams = new DialogSettings
+    {
+        Width = "600px",
+        MinHeight = "300px"
+    };
+
+    // Toast configuration
+    private string ToastTitle = string.Empty;
+    private string ToastContent = string.Empty;
+    private ToastPosition ToastPosition = new ToastPosition { X = "Right", Y = "Top" };
+    private int ToastTimeout = 3000;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    /// <summary>
+    /// Loads all entities from the service
+    /// </summary>
+    private async Task LoadDataAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            Logger.LogInformation("Loading {EntityNameLower}s from database...");
+            {EntityNamePlural} = await {EntityName}Service.GetAllAsync();
+            Logger.LogInformation("Successfully loaded {Count} {EntityNameLower}s", {EntityNamePlural}.Count);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load {EntityNameLower}s. Please try again later.";
+            Logger.LogError(ex, "Error loading {EntityNameLower}s from database");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles grid action begin events (Save, Delete)
+    /// </summary>
+    private async Task OnActionBeginHandler(ActionEventArgs<{EntityName}> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save)
+            {
+                if (args.Action == "Add")
+                {
+                    Logger.LogInformation("Creating new {EntityNameLower}...");
+                    await {EntityName}Service.CreateAsync(args.Data);
+                    Logger.LogInformation("{EntityName} created successfully with ID: {{Id}}", args.Data.{PrimaryKey});
+
+                    await OnItemCreated.InvokeAsync(args.Data);
+                    await ShowToastAsync("Success", "{EntityName} created successfully", "e-toast-success");
+                }
+                else if (args.Action == "Edit")
+                {
+                    Logger.LogInformation("Updating {EntityNameLower} with ID: {{Id}}", args.Data.{PrimaryKey});
+                    await {EntityName}Service.UpdateAsync(args.Data);
+                    Logger.LogInformation("{EntityName} updated successfully");
+
+                    await OnItemUpdated.InvokeAsync(args.Data);
+                    await ShowToastAsync("Success", "{EntityName} updated successfully", "e-toast-success");
+                }
+
+                await LoadDataAsync();
+            }
+            else if (args.RequestType == Syncfusion.Blazor.Grids.Action.Delete)
+            {
+                // Show confirmation dialog instead of immediate delete
+                {EntityName}ToDelete = args.Data;
+                ShowDeleteConfirmation = true;
+                args.Cancel = true; // Cancel default delete behavior
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Operation failed: {ex.Message}";
+            Logger.LogError(ex, "Error during {Action} operation for {EntityNameLower}", args.RequestType);
+            args.Cancel = true; // Cancel the operation
+            await ShowToastAsync("Error", ErrorMessage, "e-toast-danger");
+        }
+    }
+
+    /// <summary>
+    /// Handles grid action complete events
+    /// </summary>
+    private void OnActionCompleteHandler(ActionEventArgs<{EntityName}> args)
+    {
+        if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save)
+        {
+            Logger.LogInformation("{Action} operation completed for {EntityNameLower}", args.Action);
+        }
+    }
+
+    /// <summary>
+    /// Handles grid action failure events
+    /// </summary>
+    private void OnActionFailureHandler(FailureEventArgs args)
+    {
+        ErrorMessage = $"Grid operation failed: {args.Error?.Message ?? "Unknown error"}";
+        Logger.LogError("Grid action failure: {Error}", args.Error?.Message);
+    }
+
+    /// <summary>
+    /// Confirms and executes the delete operation
+    /// </summary>
+    private async Task ConfirmDelete()
+    {
+        ShowDeleteConfirmation = false;
+
+        if ({EntityName}ToDelete != null)
+        {
+            try
+            {
+                Logger.LogInformation("Deleting {EntityNameLower} with ID: {{Id}}", {EntityName}ToDelete.{PrimaryKey});
+                await {EntityName}Service.DeleteAsync({EntityName}ToDelete.{PrimaryKey});
+                Logger.LogInformation("{EntityName} deleted successfully");
+
+                await OnItemDeleted.InvokeAsync({EntityName}ToDelete);
+                await LoadDataAsync();
+                await ShowToastAsync("Success", "{EntityName} deleted successfully", "e-toast-success");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Failed to delete {EntityNameLower}: {ex.Message}";
+                Logger.LogError(ex, "Error deleting {EntityNameLower} with ID: {{Id}}", {EntityName}ToDelete.{PrimaryKey});
+                await ShowToastAsync("Error", ErrorMessage, "e-toast-danger");
+            }
+            finally
+            {
+                {EntityName}ToDelete = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Cancels the delete operation
+    /// </summary>
+    private void CancelDelete()
+    {
+        ShowDeleteConfirmation = false;
+        {EntityName}ToDelete = null;
+        Logger.LogInformation("Delete operation cancelled for {EntityNameLower}");
+    }
+
+    /// <summary>
+    /// Displays a toast notification
+    /// </summary>
+    private async Task ShowToastAsync(string title, string content, string cssClass)
+    {
+        if (ToastObj != null)
+        {
+            ToastTitle = title;
+            ToastContent = content;
+            await ToastObj.ShowAsync(new ToastModel
+            {
+                Title = title,
+                Content = content,
+                CssClass = cssClass,
+                Icon = cssClass == "e-toast-success" ? "e-success" : "e-error"
+            });
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the grid data
+    /// </summary>
+    public async Task RefreshAsync()
+    {
+        await LoadDataAsync();
+        if (Grid != null)
+        {
+            await Grid.RefreshAsync();
+        }
+    }
+
+    /// <summary>
+    /// Gets the currently selected row
+    /// </summary>
+    public async Task<{EntityName}?> GetSelectedRowAsync()
+    {
+        if (Grid != null)
+        {
+            var selectedRecords = await Grid.GetSelectedRecordsAsync();
+            return selectedRecords?.FirstOrDefault();
+        }
+        return null;
+    }
+}

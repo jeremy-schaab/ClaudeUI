@@ -1,0 +1,86 @@
+{
+  "trackingFileStructure": {
+    "header": {
+      "title": "# Story {storyNumber} - Implementation Tracking",
+      "metadata": [
+        "**Story:** {storyTitle}",
+        "**Features:** {features}",
+        "**Started:** {startDate}",
+        "**Completed:** {completedDate}",
+        "**Status:** {status}"
+      ]
+    },
+    "sections": [
+      {
+        "name": "Implementation Progress",
+        "type": "phase-checklist",
+        "includePhases": true
+      },
+      {
+        "name": "Current Status Update",
+        "type": "status-log",
+        "chronological": true
+      },
+      {
+        "name": "Implementation Notes",
+        "type": "freeform",
+        "subsections": [
+          "Key Findings",
+          "Technical Decisions",
+          "Blockers",
+          "Questions/Risks"
+        ]
+      },
+      {
+        "name": "Files Modified",
+        "type": "file-tracking",
+        "categories": [
+          "Story Documentation",
+          "Backend Changes",
+          "Frontend Components",
+          "Database Changes",
+          "Configuration Files",
+          "Tests"
+        ]
+      },
+      {
+        "name": "Implementation Summary",
+        "type": "summary",
+        "subsections": [
+          "What Was Built",
+          "How It Works",
+          "Next Actions"
+        ]
+      }
+    ]
+  },
+  "statusValues": {
+    "not_started": "📝 Not Started",
+    "planning": "🔍 Planning",
+    "in_progress": "⏳ In Progress",
+    "testing": "🧪 Testing",
+    "complete": "✅ Complete",
+    "blocked": "❌ Blocked",
+    "needs_review": "👀 Needs Review",
+    "deployed": "🚀 Deployed"
+  },
+  "phaseTemplate": {
+    "name": "Phase {number}: {phaseName}",
+    "status": "{statusEmoji}",
+    "subsections": [
+      {
+        "name": "✅ Completed Tasks",
+        "type": "checklist",
+        "checked": true
+      },
+      {
+        "name": "⏳ Pending Tasks",
+        "type": "checklist",
+        "checked": false
+      }
+    ]
+  },
+  "taskChecklistFormat": "- [{checked}] {taskDescription}",
+  "statusUpdateFormat": "### {date} - {title}\n{content}",
+  "fileTrackingFormat": "- {status} `{filePath}` (commit {commitHash})"
+}

@@ -1,0 +1,207 @@
+{
+  "components": {
+    "TelerikGrid": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Data",
+        "OnRead",
+        "Pageable",
+        "Sortable",
+        "FilterMode",
+        "Resizable",
+        "Reorderable"
+      ],
+      "events": [
+        "OnRead",
+        "OnCreate",
+        "OnUpdate",
+        "OnDelete",
+        "SelectedItemsChanged"
+      ]
+    },
+    "TelerikDialog": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Visible",
+        "Width",
+        "Height",
+        "Title",
+        "ShowCloseButton"
+      ],
+      "events": [
+        "VisibleChanged"
+      ]
+    },
+    "TelerikForm": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Model",
+        "Orientation",
+        "ColumnSpacing"
+      ],
+      "events": [
+        "OnValidSubmit",
+        "OnInvalidSubmit"
+      ]
+    },
+    "TelerikTextBox": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Value",
+        "Width",
+        "Placeholder",
+        "Enabled"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikNumericTextBox": {
+      "namespace": "Telerik.Blazor.Components",
+      "genericType": "T",
+      "commonProps": [
+        "Value",
+        "Width",
+        "Decimals",
+        "Format",
+        "Min",
+        "Max"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikDatePicker": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Value",
+        "Width",
+        "Format",
+        "Min",
+        "Max"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikDateTimePicker": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Value",
+        "Width",
+        "Format"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikComboBox": {
+      "namespace": "Telerik.Blazor.Components",
+      "genericType": "T",
+      "commonProps": [
+        "Data",
+        "Value",
+        "TextField",
+        "ValueField",
+        "Filterable",
+        "Placeholder"
+      ],
+      "events": [
+        "ValueChanged",
+        "OnRead"
+      ]
+    },
+    "TelerikDropDownList": {
+      "namespace": "Telerik.Blazor.Components",
+      "genericType": "T",
+      "commonProps": [
+        "Data",
+        "Value",
+        "TextField",
+        "ValueField"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikMultiSelect": {
+      "namespace": "Telerik.Blazor.Components",
+      "genericType": "T",
+      "commonProps": [
+        "Data",
+        "Value",
+        "TextField",
+        "ValueField",
+        "Placeholder"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikCheckBox": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Value"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikSwitch": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "Value",
+        "OnLabel",
+        "OffLabel"
+      ],
+      "events": [
+        "ValueChanged"
+      ]
+    },
+    "TelerikButton": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "ThemeColor",
+        "Icon",
+        "Enabled"
+      ],
+      "events": [
+        "OnClick"
+      ]
+    },
+    "TelerikTabStrip": {
+      "namespace": "Telerik.Blazor.Components",
+      "commonProps": [
+        "ActiveTabIndex"
+      ],
+      "events": [
+        "ActiveTabIndexChanged"
+      ]
+    }
+  },
+  "icons": {
+    "common": [
+      "SvgIcon.Plus",
+      "SvgIcon.Pencil",
+      "SvgIcon.Trash",
+      "SvgIcon.Eye",
+      "SvgIcon.Save",
+      "SvgIcon.Cancel",
+      "SvgIcon.Search",
+      "SvgIcon.Filter",
+      "SvgIcon.X"
+    ]
+  },
+  "themeColors": {
+    "button": [
+      "Primary",
+      "Secondary",
+      "Success",
+      "Info",
+      "Warning",
+      "Error",
+      "Light",
+      "Dark"
+    ]
+  }
+}

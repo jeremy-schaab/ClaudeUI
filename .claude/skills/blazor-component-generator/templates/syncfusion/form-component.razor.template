@@ -1,0 +1,383 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@using System.ComponentModel.DataAnnotations
+@inject ILogger<{EntityName}Form> Logger
+
+<div class="{EntityNameLower}-form">
+    @if (Model != null)
+    {
+        <EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@HandleInvalidSubmit">
+            <DataAnnotationsValidator />
+
+            @if (ShowValidationSummary)
+            {
+                <div class="validation-summary-container mb-3">
+                    <ValidationSummary />
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Error:</strong> @ErrorMessage
+                    <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = string.Empty)"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(SuccessMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>Success:</strong> @SuccessMessage
+                    <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = string.Empty)"></button>
+                </div>
+            }
+
+            <div class="form-container">
+                <div class="row g-3">
+                    <!-- FORM_FIELDS_WITH_LAYOUT -->
+                </div>
+            </div>
+
+            @if (ShowButtons)
+            {
+                <div class="form-actions mt-4">
+                    <SfButton type="submit"
+                             IsPrimary="true"
+                             IconCss="e-icons e-check"
+                             Disabled="@IsSubmitting"
+                             CssClass="e-success">
+                        @SubmitButtonText
+                    </SfButton>
+
+                    @if (ShowCancelButton)
+                    {
+                        <SfButton type="button"
+                                 IconCss="e-icons e-close"
+                                 OnClick="@HandleCancel"
+                                 Disabled="@IsSubmitting"
+                                 CssClass="ms-2">
+                            Cancel
+                        </SfButton>
+                    }
+
+                    @if (ShowResetButton)
+                    {
+                        <SfButton type="button"
+                                 IconCss="e-icons e-reset"
+                                 OnClick="@HandleReset"
+                                 Disabled="@IsSubmitting"
+                                 CssClass="ms-2">
+                            Reset
+                        </SfButton>
+                    }
+                </div>
+            }
+        </EditForm>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <span class="e-icons e-warning"></span>
+            No data available to display.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public {EntityName}? Model { get; set; }
+
+    [Parameter]
+    public EventCallback<{EntityName}> OnValidSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback OnReset { get; set; }
+
+    [Parameter]
+    public bool ShowButtons { get; set; } = true;
+
+    [Parameter]
+    public bool ShowCancelButton { get; set; } = true;
+
+    [Parameter]
+    public bool ShowResetButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowValidationSummary { get; set; } = true;
+
+    [Parameter]
+    public string SubmitButtonText { get; set; } = "Save";
+
+    [Parameter]
+    public bool IsReadOnly { get; set; } = false;
+
+    [Parameter]
+    public int ColumnsPerRow { get; set; } = 2;
+
+    private bool IsSubmitting = false;
+    private string ErrorMessage = string.Empty;
+    private string SuccessMessage = string.Empty;
+    private {EntityName}? OriginalModel;
+
+    protected override void OnInitialized()
+    {
+        if (Model != null)
+        {
+            // Store a copy for reset functionality
+            OriginalModel = CloneModel(Model);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Model != null && OriginalModel == null)
+        {
+            OriginalModel = CloneModel(Model);
+        }
+    }
+
+    /// <summary>
+    /// Handles valid form submission
+    /// </summary>
+    private async Task HandleValidSubmit()
+    {
+        if (Model == null) return;
+
+        IsSubmitting = true;
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+
+        try
+        {
+            Logger.LogInformation("Form validation successful for {EntityNameLower}");
+
+            // Invoke the parent component's submit handler
+            await OnValidSubmit.InvokeAsync(Model);
+
+            SuccessMessage = "{EntityName} saved successfully!";
+            Logger.LogInformation("{EntityName} form submitted successfully");
+        }
+        catch (ValidationException vex)
+        {
+            ErrorMessage = $"Validation error: {vex.Message}";
+            Logger.LogWarning(vex, "Validation error in {EntityNameLower} form");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+            Logger.LogError(ex, "Error submitting {EntityNameLower} form");
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles invalid form submission
+    /// </summary>
+    private void HandleInvalidSubmit()
+    {
+        ErrorMessage = "Please correct the validation errors before submitting.";
+        Logger.LogWarning("Form validation failed for {EntityNameLower}");
+    }
+
+    /// <summary>
+    /// Handles cancel button click
+    /// </summary>
+    private async Task HandleCancel()
+    {
+        Logger.LogInformation("Form cancelled for {EntityNameLower}");
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        await OnCancel.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Handles reset button click - restores original values
+    /// </summary>
+    private async Task HandleReset()
+    {
+        if (OriginalModel != null && Model != null)
+        {
+            Logger.LogInformation("Resetting form for {EntityNameLower}");
+            Model = CloneModel(OriginalModel);
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+            await OnReset.InvokeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Validates the form programmatically
+    /// </summary>
+    public bool Validate()
+    {
+        if (Model == null) return false;
+
+        var validationContext = new ValidationContext(Model);
+        var validationResults = new List<ValidationResult>();
+        bool isValid = Validator.TryValidateObject(Model, validationContext, validationResults, true);
+
+        if (!isValid)
+        {
+            ErrorMessage = string.Join("; ", validationResults.Select(r => r.ErrorMessage));
+            Logger.LogWarning("Form validation failed with {Count} errors", validationResults.Count);
+        }
+
+        return isValid;
+    }
+
+    /// <summary>
+    /// Clears all form fields
+    /// </summary>
+    public void Clear()
+    {
+        if (Model != null)
+        {
+            Model = new {EntityName}();
+            OriginalModel = CloneModel(Model);
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+            Logger.LogInformation("Form cleared for {EntityNameLower}");
+        }
+    }
+
+    /// <summary>
+    /// Sets the form to read-only mode
+    /// </summary>
+    public void SetReadOnly(bool readOnly)
+    {
+        IsReadOnly = readOnly;
+        Logger.LogInformation("Form read-only mode set to {ReadOnly} for {EntityNameLower}", readOnly);
+    }
+
+    /// <summary>
+    /// Displays a success message
+    /// </summary>
+    public void ShowSuccess(string message)
+    {
+        SuccessMessage = message;
+        ErrorMessage = string.Empty;
+    }
+
+    /// <summary>
+    /// Displays an error message
+    /// </summary>
+    public void ShowError(string message)
+    {
+        ErrorMessage = message;
+        SuccessMessage = string.Empty;
+    }
+
+    /// <summary>
+    /// Creates a shallow copy of the model
+    /// </summary>
+    private {EntityName} CloneModel({EntityName} source)
+    {
+        // Create a new instance and copy properties
+        var clone = new {EntityName}();
+
+        // Use reflection to copy all public properties
+        foreach (var property in typeof({EntityName}).GetProperties())
+        {
+            if (property.CanRead && property.CanWrite)
+            {
+                var value = property.GetValue(source);
+                property.SetValue(clone, value);
+            }
+        }
+
+        return clone;
+    }
+
+    /// <summary>
+    /// Gets the column CSS class based on ColumnsPerRow setting
+    /// </summary>
+    private string GetColumnClass()
+    {
+        return ColumnsPerRow switch
+        {
+            1 => "col-12",
+            2 => "col-md-6",
+            3 => "col-md-4",
+            4 => "col-md-3",
+            _ => "col-md-6"
+        };
+    }
+}
+
+@code {
+    // Example form field generation pattern (to be replaced by generator)
+    // For string property:
+    // <div class="@GetColumnClass()">
+    //     <label class="form-label">PropertyName</label>
+    //     <SfTextBox @bind-Value="@Model.PropertyName"
+    //                Placeholder="Enter property name"
+    //                FloatLabelType="FloatLabelType.Auto"
+    //                Enabled="@(!IsReadOnly)" />
+    //     <ValidationMessage For="@(() => Model.PropertyName)" />
+    // </div>
+
+    // For int property:
+    // <div class="@GetColumnClass()">
+    //     <label class="form-label">PropertyName</label>
+    //     <SfNumericTextBox @bind-Value="@Model.PropertyName"
+    //                       Format="N0"
+    //                       FloatLabelType="FloatLabelType.Auto"
+    //                       Enabled="@(!IsReadOnly)" />
+    //     <ValidationMessage For="@(() => Model.PropertyName)" />
+    // </div>
+
+    // For decimal property:
+    // <div class="@GetColumnClass()">
+    //     <label class="form-label">PropertyName</label>
+    //     <SfNumericTextBox @bind-Value="@Model.PropertyName"
+    //                       Format="C2"
+    //                       Min="0"
+    //                       FloatLabelType="FloatLabelType.Auto"
+    //                       Enabled="@(!IsReadOnly)" />
+    //     <ValidationMessage For="@(() => Model.PropertyName)" />
+    // </div>
+
+    // For DateTime property:
+    // <div class="@GetColumnClass()">
+    //     <label class="form-label">PropertyName</label>
+    //     <SfDatePicker @bind-Value="@Model.PropertyName"
+    //                   Format="yyyy-MM-dd"
+    //                   FloatLabelType="FloatLabelType.Auto"
+    //                   Enabled="@(!IsReadOnly)" />
+    //     <ValidationMessage For="@(() => Model.PropertyName)" />
+    // </div>
+
+    // For bool property:
+    // <div class="@GetColumnClass()">
+    //     <SfCheckBox @bind-Checked="@Model.PropertyName"
+    //                 Label="PropertyName"
+    //                 Disabled="@IsReadOnly" />
+    //     <ValidationMessage For="@(() => Model.PropertyName)" />
+    // </div>
+
+    // For foreign key (ComboBox):
+    // <div class="@GetColumnClass()">
+    //     <label class="form-label">PropertyName</label>
+    //     <SfComboBox @bind-Value="@Model.ForeignKeyId"
+    //                 DataSource="@RelatedEntities"
+    //                 TValue="int"
+    //                 TItem="RelatedEntity"
+    //                 Placeholder="Select..."
+    //                 AllowFiltering="true"
+    //                 FloatLabelType="FloatLabelType.Auto"
+    //                 Enabled="@(!IsReadOnly)">
+    //         <ComboBoxFieldSettings Value="Id" Text="Name" />
+    //     </SfComboBox>
+    //     <ValidationMessage For="@(() => Model.ForeignKeyId)" />
+    // </div>
+}

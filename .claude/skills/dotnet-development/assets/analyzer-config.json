@@ -1,0 +1,604 @@
+{
+  "$schema": "https://json.schemastore.org/analyzers.json",
+  "description": ".NET Analyzer Configuration for C# 12/13 Best Practices",
+  "version": "1.0",
+  "severity_levels": {
+    "error": "Must fix before merge",
+    "warning": "Should fix before merge",
+    "suggestion": "Consider fixing for quality",
+    "silent": "Background hint only",
+    "none": "Disabled"
+  },
+  "categories": {
+    "design": {
+      "prefix": "CA1",
+      "description": "Design issues - API design, type design, naming",
+      "default_severity": "warning"
+    },
+    "usage": {
+      "prefix": "CA2",
+      "description": "Usage issues - API usage, performance, disposable",
+      "default_severity": "warning"
+    },
+    "security": {
+      "prefix": "CA3,CA5",
+      "description": "Security vulnerabilities",
+      "default_severity": "error"
+    },
+    "style": {
+      "prefix": "IDE",
+      "description": "Code style and formatting",
+      "default_severity": "suggestion"
+    }
+  },
+  "rules": {
+    "CA1000": {
+      "severity": "warning",
+      "description": "Do not declare static members on generic types",
+      "enabled": true
+    },
+    "CA1001": {
+      "severity": "error",
+      "description": "Types that own disposable fields should be disposable",
+      "enabled": true
+    },
+    "CA1008": {
+      "severity": "warning",
+      "description": "Enums should have zero value",
+      "enabled": true
+    },
+    "CA1012": {
+      "severity": "warning",
+      "description": "Abstract types should not have public constructors",
+      "enabled": true
+    },
+    "CA1014": {
+      "severity": "none",
+      "description": "Mark assemblies with CLSCompliant",
+      "enabled": false,
+      "reason": "Not all assemblies need CLS compliance"
+    },
+    "CA1016": {
+      "severity": "suggestion",
+      "description": "Mark assemblies with assembly version",
+      "enabled": true
+    },
+    "CA1018": {
+      "severity": "warning",
+      "description": "Mark attributes with AttributeUsageAttribute",
+      "enabled": true
+    },
+    "CA1031": {
+      "severity": "warning",
+      "description": "Do not catch general exception types",
+      "enabled": true
+    },
+    "CA1034": {
+      "severity": "warning",
+      "description": "Nested types should not be visible",
+      "enabled": true
+    },
+    "CA1062": {
+      "severity": "none",
+      "description": "Validate arguments of public methods",
+      "enabled": false,
+      "reason": "Nullable reference types handle this. DI parameters should NOT be null-checked."
+    },
+    "CA1063": {
+      "severity": "error",
+      "description": "Implement IDisposable correctly",
+      "enabled": true
+    },
+    "CA1303": {
+      "severity": "none",
+      "description": "Do not pass literals as localized parameters",
+      "enabled": false,
+      "reason": "Not all projects need localization"
+    },
+    "CA1305": {
+      "severity": "warning",
+      "description": "Specify IFormatProvider",
+      "enabled": true
+    },
+    "CA1307": {
+      "severity": "warning",
+      "description": "Specify StringComparison for clarity",
+      "enabled": true
+    },
+    "CA1310": {
+      "severity": "warning",
+      "description": "Specify StringComparison for correctness",
+      "enabled": true
+    },
+    "CA1501": {
+      "severity": "warning",
+      "description": "Avoid excessive inheritance",
+      "enabled": true
+    },
+    "CA1502": {
+      "severity": "warning",
+      "description": "Avoid excessive complexity",
+      "enabled": true
+    },
+    "CA1505": {
+      "severity": "warning",
+      "description": "Avoid unmaintainable code",
+      "enabled": true
+    },
+    "CA1506": {
+      "severity": "warning",
+      "description": "Avoid excessive class coupling",
+      "enabled": true
+    },
+    "CA1707": {
+      "severity": "none",
+      "description": "Identifiers should not contain underscores",
+      "enabled": false,
+      "reason": "Private fields use underscore prefix (_field)"
+    },
+    "CA1711": {
+      "severity": "suggestion",
+      "description": "Identifiers should not have incorrect suffix",
+      "enabled": true
+    },
+    "CA1715": {
+      "severity": "warning",
+      "description": "Identifiers should have correct prefix",
+      "enabled": true
+    },
+    "CA1716": {
+      "severity": "warning",
+      "description": "Identifiers should not match keywords",
+      "enabled": true
+    },
+    "CA1810": {
+      "severity": "warning",
+      "description": "Initialize reference type static fields inline",
+      "enabled": true
+    },
+    "CA1822": {
+      "severity": "suggestion",
+      "description": "Mark members as static",
+      "enabled": true
+    },
+    "CA1826": {
+      "severity": "warning",
+      "description": "Use property instead of Linq Enumerable method",
+      "enabled": true
+    },
+    "CA1827": {
+      "severity": "warning",
+      "description": "Do not use Count/LongCount when Any can be used",
+      "enabled": true
+    },
+    "CA1828": {
+      "severity": "warning",
+      "description": "Do not use CountAsync/LongCountAsync when AnyAsync can be used",
+      "enabled": true
+    },
+    "CA1829": {
+      "severity": "warning",
+      "description": "Use Length/Count property instead of Enumerable.Count method",
+      "enabled": true
+    },
+    "CA1830": {
+      "severity": "warning",
+      "description": "Prefer strongly-typed Append and Insert method overloads on StringBuilder",
+      "enabled": true
+    },
+    "CA1831": {
+      "severity": "warning",
+      "description": "Use AsSpan instead of Range-based indexers for string",
+      "enabled": true
+    },
+    "CA1832": {
+      "severity": "warning",
+      "description": "Use AsSpan or AsMemory instead of Range-based indexers",
+      "enabled": true
+    },
+    "CA1833": {
+      "severity": "warning",
+      "description": "Use AsSpan or AsMemory instead of Range-based indexers",
+      "enabled": true
+    },
+    "CA1834": {
+      "severity": "warning",
+      "description": "Use StringBuilder.Append(char) for single character strings",
+      "enabled": true
+    },
+    "CA1835": {
+      "severity": "warning",
+      "description": "Prefer the memory-based overloads of ReadAsync/WriteAsync methods",
+      "enabled": true
+    },
+    "CA1836": {
+      "severity": "warning",
+      "description": "Prefer IsEmpty over Count when available",
+      "enabled": true
+    },
+    "CA1837": {
+      "severity": "warning",
+      "description": "Use Environment.ProcessId instead of Process.GetCurrentProcess().Id",
+      "enabled": true
+    },
+    "CA1838": {
+      "severity": "warning",
+      "description": "Avoid StringBuilder parameters for P/Invokes",
+      "enabled": true
+    },
+    "CA1839": {
+      "severity": "warning",
+      "description": "Use Environment.ProcessPath instead of Process.GetCurrentProcess().MainModule.FileName",
+      "enabled": true
+    },
+    "CA1840": {
+      "severity": "warning",
+      "description": "Use Environment.CurrentManagedThreadId instead of Thread.CurrentThread.ManagedThreadId",
+      "enabled": true
+    },
+    "CA1841": {
+      "severity": "warning",
+      "description": "Prefer Dictionary Contains methods",
+      "enabled": true
+    },
+    "CA1842": {
+      "severity": "warning",
+      "description": "Do not use WhenAll with a single task",
+      "enabled": true
+    },
+    "CA1843": {
+      "severity": "warning",
+      "description": "Do not use WaitAll with a single task",
+      "enabled": true
+    },
+    "CA1844": {
+      "severity": "warning",
+      "description": "Provide memory-based overrides of async methods when subclassing Stream",
+      "enabled": true
+    },
+    "CA1845": {
+      "severity": "warning",
+      "description": "Use span-based string.Concat",
+      "enabled": true
+    },
+    "CA1846": {
+      "severity": "warning",
+      "description": "Prefer AsSpan over Substring",
+      "enabled": true
+    },
+    "CA1847": {
+      "severity": "warning",
+      "description": "Use string.Contains(char) instead of string.Contains(string) with single characters",
+      "enabled": true
+    },
+    "CA1848": {
+      "severity": "suggestion",
+      "description": "Use LoggerMessage delegates for high-performance logging",
+      "enabled": true
+    },
+    "CA1849": {
+      "severity": "warning",
+      "description": "Call async methods when in an async method",
+      "enabled": true
+    },
+    "CA1850": {
+      "severity": "warning",
+      "description": "Prefer static HashData method over ComputeHash",
+      "enabled": true
+    },
+    "CA2000": {
+      "severity": "error",
+      "description": "Dispose objects before losing scope",
+      "enabled": true
+    },
+    "CA2002": {
+      "severity": "warning",
+      "description": "Do not lock on objects with weak identity",
+      "enabled": true
+    },
+    "CA2007": {
+      "severity": "none",
+      "description": "Do not directly await a Task (consider ConfigureAwait)",
+      "enabled": false,
+      "reason": "Not needed in .NET 6+ apps with new synchronization context"
+    },
+    "CA2008": {
+      "severity": "warning",
+      "description": "Do not create tasks without passing a TaskScheduler",
+      "enabled": true
+    },
+    "CA2012": {
+      "severity": "error",
+      "description": "Use ValueTasks correctly",
+      "enabled": true
+    },
+    "CA2013": {
+      "severity": "error",
+      "description": "Do not use ReferenceEquals with value types",
+      "enabled": true
+    },
+    "CA2014": {
+      "severity": "error",
+      "description": "Do not use stackalloc in loops",
+      "enabled": true
+    },
+    "CA2015": {
+      "severity": "error",
+      "description": "Do not define finalizers for types derived from MemoryManager<T>",
+      "enabled": true
+    },
+    "CA2016": {
+      "severity": "warning",
+      "description": "Forward CancellationToken parameter to methods that take one",
+      "enabled": true
+    },
+    "CA2017": {
+      "severity": "error",
+      "description": "Parameter count mismatch between format string and arguments",
+      "enabled": true
+    },
+    "CA2100": {
+      "severity": "error",
+      "description": "Review SQL queries for security vulnerabilities",
+      "enabled": true
+    },
+    "CA2109": {
+      "severity": "error",
+      "description": "Review visible event handlers",
+      "enabled": true
+    },
+    "CA2200": {
+      "severity": "warning",
+      "description": "Rethrow to preserve stack details",
+      "enabled": true
+    },
+    "CA2201": {
+      "severity": "warning",
+      "description": "Do not raise reserved exception types",
+      "enabled": true
+    },
+    "CA2207": {
+      "severity": "warning",
+      "description": "Initialize value type static fields inline",
+      "enabled": true
+    },
+    "CA2208": {
+      "severity": "warning",
+      "description": "Instantiate argument exceptions correctly",
+      "enabled": true
+    },
+    "CA2211": {
+      "severity": "warning",
+      "description": "Non-constant fields should not be visible",
+      "enabled": true
+    },
+    "CA2213": {
+      "severity": "error",
+      "description": "Disposable fields should be disposed",
+      "enabled": true
+    },
+    "CA2214": {
+      "severity": "warning",
+      "description": "Do not call overridable methods in constructors",
+      "enabled": true
+    },
+    "CA2215": {
+      "severity": "error",
+      "description": "Dispose methods should call base class dispose",
+      "enabled": true
+    },
+    "CA2216": {
+      "severity": "warning",
+      "description": "Disposable types should declare finalizer",
+      "enabled": true
+    },
+    "CA2217": {
+      "severity": "warning",
+      "description": "Do not mark enums with FlagsAttribute",
+      "enabled": true
+    },
+    "CA2218": {
+      "severity": "warning",
+      "description": "Override GetHashCode on overriding Equals",
+      "enabled": true
+    },
+    "CA2219": {
+      "severity": "warning",
+      "description": "Do not raise exceptions in exception clauses",
+      "enabled": true
+    },
+    "CA2225": {
+      "severity": "suggestion",
+      "description": "Operator overloads have named alternates",
+      "enabled": true
+    },
+    "CA2226": {
+      "severity": "suggestion",
+      "description": "Operators should have symmetrical overloads",
+      "enabled": true
+    },
+    "CA2227": {
+      "severity": "none",
+      "description": "Collection properties should be read only",
+      "enabled": false,
+      "reason": "Init-only properties are preferred in modern C#"
+    },
+    "CA2229": {
+      "severity": "suggestion",
+      "description": "Implement serialization constructors",
+      "enabled": true
+    },
+    "CA2231": {
+      "severity": "warning",
+      "description": "Overload operator equals on overriding ValueType.Equals",
+      "enabled": true
+    },
+    "CA2234": {
+      "severity": "suggestion",
+      "description": "Pass System.Uri objects instead of strings",
+      "enabled": true
+    },
+    "CA2235": {
+      "severity": "warning",
+      "description": "Mark all non-serializable fields",
+      "enabled": true
+    },
+    "CA2237": {
+      "severity": "warning",
+      "description": "Mark ISerializable types with SerializableAttribute",
+      "enabled": true
+    },
+    "CA2241": {
+      "severity": "error",
+      "description": "Provide correct arguments to formatting methods",
+      "enabled": true
+    },
+    "CA2242": {
+      "severity": "warning",
+      "description": "Test for NaN correctly",
+      "enabled": true
+    },
+    "CA2243": {
+      "severity": "suggestion",
+      "description": "Attribute string literals should parse correctly",
+      "enabled": true
+    },
+    "CA2244": {
+      "severity": "warning",
+      "description": "Do not duplicate indexed element initializations",
+      "enabled": true
+    },
+    "CA2245": {
+      "severity": "error",
+      "description": "Do not assign a property to itself",
+      "enabled": true
+    },
+    "CA2246": {
+      "severity": "error",
+      "description": "Do not assign a symbol and its member in the same statement",
+      "enabled": true
+    },
+    "CA2247": {
+      "severity": "error",
+      "description": "Argument passed to TaskCompletionSource constructor should be TaskCreationOptions enum",
+      "enabled": true
+    },
+    "CA2248": {
+      "severity": "error",
+      "description": "Provide correct enum argument to Enum.HasFlag",
+      "enabled": true
+    },
+    "CA2249": {
+      "severity": "warning",
+      "description": "Consider using String.Contains instead of String.IndexOf",
+      "enabled": true
+    },
+    "CA2250": {
+      "severity": "warning",
+      "description": "Use ThrowIfCancellationRequested",
+      "enabled": true
+    },
+    "CA2251": {
+      "severity": "warning",
+      "description": "Use String.Equals over String.Compare",
+      "enabled": true
+    },
+    "CA3001": {
+      "severity": "error",
+      "description": "Review code for SQL injection vulnerabilities",
+      "enabled": true
+    },
+    "CA3075": {
+      "severity": "error",
+      "description": "Insecure DTD Processing",
+      "enabled": true
+    },
+    "CA3076": {
+      "severity": "error",
+      "description": "Insecure XSLT Script Execution",
+      "enabled": true
+    },
+    "CA3077": {
+      "severity": "error",
+      "description": "Insecure Processing in API Design, XML Document and XML Text Reader",
+      "enabled": true
+    },
+    "CA5350": {
+      "severity": "error",
+      "description": "Do Not Use Weak Cryptographic Algorithms",
+      "enabled": true
+    },
+    "CA5351": {
+      "severity": "error",
+      "description": "Do Not Use Broken Cryptographic Algorithms",
+      "enabled": true
+    },
+    "CA5359": {
+      "severity": "error",
+      "description": "Do Not Disable Certificate Validation",
+      "enabled": true
+    },
+    "CA5360": {
+      "severity": "error",
+      "description": "Do Not Call Dangerous Methods In Deserialization",
+      "enabled": true
+    },
+    "CA5361": {
+      "severity": "error",
+      "description": "Do Not Disable SChannel Use of Strong Crypto",
+      "enabled": true
+    },
+    "CA5362": {
+      "severity": "error",
+      "description": "Potential reference cycle in deserialized object graph",
+      "enabled": true
+    },
+    "CA5363": {
+      "severity": "error",
+      "description": "Do Not Disable Request Validation",
+      "enabled": true
+    },
+    "CA5364": {
+      "severity": "error",
+      "description": "Do Not Use Deprecated Security Protocols",
+      "enabled": true
+    },
+    "CA5365": {
+      "severity": "error",
+      "description": "Do Not Disable HTTP Header Checking",
+      "enabled": true
+    }
+  },
+  "csharp_12_13_patterns": {
+    "collection_expressions": {
+      "enabled": true,
+      "severity": "suggestion",
+      "description": "Convert arrays and lists to collection expressions [1, 2, 3]"
+    },
+    "primary_constructors": {
+      "enabled": true,
+      "severity": "suggestion",
+      "description": "Use primary constructors for simple classes"
+    },
+    "pattern_matching": {
+      "enabled": true,
+      "severity": "suggestion",
+      "description": "Prefer switch expressions over switch statements"
+    },
+    "required_members": {
+      "enabled": true,
+      "severity": "suggestion",
+      "description": "Use required members for mandatory properties"
+    },
+    "file_scoped_namespaces": {
+      "enabled": true,
+      "severity": "suggestion",
+      "description": "Use file-scoped namespace declarations"
+    },
+    "no_di_null_checks": {
+      "enabled": true,
+      "severity": "warning",
+      "description": "Remove null checks from DI constructor parameters - trust the container"
+    }
+  }
+}

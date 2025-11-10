@@ -1,0 +1,26 @@
+using Xunit;
+using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net.Http.Json;
+{{ADDITIONAL_USINGS}}
+
+namespace {{NAMESPACE}}.Tests;
+
+/// <summary>
+/// Integration tests for {{CONTROLLER_NAME}}
+/// </summary>
+public class {{CONTROLLER_NAME}}Tests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HttpClient _client;
+
+    public {{CONTROLLER_NAME}}Tests(WebApplicationFactory<Program> factory)
+    {
+        _factory = factory;
+        _client = _factory.CreateClient();
+    }
+
+{{TEST_METHODS}}
+
+{{HELPER_METHODS}}
+}

@@ -1,0 +1,150 @@
+name: Full CRUD Generation
+description: Complete CRUD component generation workflow for Blazor applications
+version: 1.0.0
+
+steps:
+  - step: 1
+    name: Detect UI Framework
+    action: detect-framework
+    description: Detect which UI framework is in use (Syncfusion/Telerik/MudBlazor)
+    input:
+      - csproj-files
+      - _imports-razor-files
+      - program-cs-file
+    output:
+      - framework-name
+      - framework-id
+      - confidence-score
+    validation:
+      - confidence-score >= 0.7
+    onFailure: prompt-user-for-framework
+
+  - step: 2
+    name: Locate Entity Class
+    action: find-entity
+    description: Locate and parse the entity class for CRUD operations
+    input:
+      - entity-name
+      - entity-namespace
+    output:
+      - entity-path
+      - entity-properties
+      - entity-structure
+    validation:
+      - entity-file-exists
+      - entity-has-properties
+    onFailure: report-entity-not-found
+
+  - step: 3
+    name: Analyze Entity Properties
+    action: analyze-properties
+    description: Extract and analyze entity properties for component generation
+    input:
+      - entity-structure
+    output:
+      - property-list
+      - property-types
+      - primary-key
+      - required-fields
+      - display-properties
+    validation:
+      - primary-key-identified
+      - at-least-one-property-found
+    onFailure: abort-workflow
+
+  - step: 4
+    name: Detect Service Interface
+    action: find-service-interface
+    description: Locate the service interface for data operations
+    input:
+      - entity-name
+      - service-namespace
+    output:
+      - service-interface-path
+      - service-methods
+      - method-signatures
+    validation:
+      - service-interface-exists
+      - crud-methods-available
+    onFailure: generate-default-service-interface
+
+  - step: 5
+    name: Generate CRUD Page Component
+    action: generate-component
+    description: Generate the CRUD page component with framework-specific templates
+    input:
+      - framework-id
+      - entity-name
+      - entity-namespace
+      - property-list
+      - property-types
+      - service-interface-path
+      - display-properties
+    output:
+      - component-file-path
+      - component-code
+      - component-language: razor
+    variables:
+      - component-name: "{entity-name}ListPage"
+      - component-file: "{entity-name}ListPage.razor"
+      - service-injection: "IService<{entity-name}>"
+      - crud-operations: [Create, Read, Update, Delete]
+    framework-templates:
+      syncfusion:
+        grid-component: SfGrid
+        form-component: SfFormValidator
+        dialog-component: SfDialog
+        toolbar-buttons: [Add, Edit, Delete, Search]
+      telerik:
+        grid-component: TelerikGrid
+        form-component: TelerikForm
+        dialog-component: TelerikWindow
+        toolbar-buttons: [Add, Edit, Delete, Search]
+      mudblazor:
+        grid-component: MudDataGrid
+        form-component: MudForm
+        dialog-component: MudDialog
+        toolbar-buttons: [Add, Edit, Delete, Search]
+
+  - step: 6
+    name: Test Compilation
+    action: verify-compilation
+    description: Verify that the generated component compiles without errors
+    input:
+      - component-file-path
+      - project-root
+    output:
+      - compilation-result
+      - compilation-errors
+      - compilation-warnings
+    validation:
+      - compilation-successful
+      - no-critical-errors
+    onFailure: report-compilation-errors
+
+  - step: 7
+    name: Report Completion
+    action: generate-report
+    description: Generate a completion report with next steps and usage instructions
+    input:
+      - component-file-path
+      - entity-name
+      - framework-name
+      - framework-version
+    output:
+      - completion-summary
+      - component-location
+      - usage-instructions
+      - next-steps
+
+summary:
+  total-steps: 7
+  success-criteria:
+    - framework-detected
+    - entity-located
+    - component-generated
+    - component-compiles
+  error-handling:
+    - automatic-retry: false
+    - fallback-options: true
+    - user-interaction: required-on-failure

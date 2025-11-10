@@ -1,0 +1,69 @@
+{
+  "storyFileParsing": {
+    "titlePattern": "# User Story (\\d+) : (.+?)$",
+    "descriptionPattern": "## Description\\s+(.+?)(?=##|$)",
+    "acceptanceCriteriaPattern": "## Acceptance Criteria\\s+(.+?)(?=##|$)",
+    "detailsPatterns": {
+      "state": "- \\*\\*State\\*\\*: (.+?)$",
+      "areaPath": "- \\*\\*Area Path\\*\\*: (.+?)$",
+      "assignedTo": "- \\*\\*Assigned To\\*\\*: (.+?)$",
+      "storyPoints": "- \\*\\*Story Points\\*\\*: (.+?)$",
+      "priority": "- \\*\\*Priority\\*\\*: (.+?)$",
+      "tags": "- \\*\\*Tags\\*\\*: (.+?)$"
+    },
+    "featureExtraction": {
+      "implementationPlanHeading": "## Implementation Plan",
+      "featuresHeading": "## Features",
+      "featureListPattern": "^\\d+\\.\\s+(.+?)$",
+      "featureSectionPattern": "## Feature \\d+: (.+?)$"
+    },
+    "acceptanceCriteriaPatterns": [
+      "- I can (.+?)$",
+      "- \\[x\\] (.+?)$",
+      "- \\[ \\] (.+?)$",
+      "\\* (.+?)$"
+    ]
+  },
+  "storyFileLocations": {
+    "devopsStories": "docs/stories/devops/",
+    "endUserStories": "docs/stories/end-user/",
+    "epics": "docs/stories/epics/",
+    "completed": "docs/stories/devops/completed/",
+    "trackingFilesSuffix": "-implementation-tracking.md"
+  },
+  "implementationPlanParsing": {
+    "overviewPattern": "### Overview\\s+(.+?)(?=###|$)",
+    "phasePattern": "## (Phase \\d+|Feature \\d+): (.+?)$",
+    "stepsPattern": {
+      "backend": "\\*\\*Backend:\\*\\*\\s+(.+?)(?=\\*\\*|$)",
+      "frontend": "\\*\\*Frontend:\\*\\*\\s+(.+?)(?=\\*\\*|$)",
+      "testing": "\\*\\*Testing:\\*\\*\\s+(.+?)(?=\\*\\*|$)",
+      "deployment": "\\*\\*Deployment:\\*\\*\\s+(.+?)(?=\\*\\*|$)"
+    },
+    "taskPattern": "^\\d+\\.\\s+(.+?)$",
+    "checklistPattern": "- \\[(x| )\\] (.+?)$"
+  },
+  "azureDevOpsIntegration": {
+    "linkPattern": "\\[View in Azure DevOps\\]\\((.+?)\\)",
+    "workItemPattern": "_workitems/edit/(\\d+)",
+    "stateMapping": {
+      "New": "📝 Not Started",
+      "Active": "⏳ In Progress",
+      "Resolved": "✅ Complete",
+      "Closed": "✅ Complete",
+      "Removed": "❌ Cancelled"
+    }
+  },
+  "autoTaskGeneration": {
+    "fromAcceptanceCriteria": true,
+    "fromImplementationPlan": true,
+    "defaultPhases": [
+      "Planning and Analysis",
+      "Backend Implementation",
+      "Frontend Implementation",
+      "Testing and Quality Assurance",
+      "Documentation",
+      "Deployment"
+    ]
+  }
+}

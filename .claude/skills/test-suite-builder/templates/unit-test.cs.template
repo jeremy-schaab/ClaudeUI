@@ -1,0 +1,26 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+{{ADDITIONAL_USINGS}}
+
+namespace {{NAMESPACE}}.Tests;
+
+/// <summary>
+/// Tests for {{CLASS_NAME}}
+/// </summary>
+public class {{CLASS_NAME}}Tests
+{
+{{MOCK_DECLARATIONS}}
+    private readonly {{CLASS_NAME}} _sut;
+
+    public {{CLASS_NAME}}Tests()
+    {
+{{MOCK_INITIALIZATIONS}}
+        _sut = new {{CLASS_NAME}}({{CONSTRUCTOR_PARAMS}});
+    }
+
+{{TEST_METHODS}}
+
+{{HELPER_METHODS}}
+}

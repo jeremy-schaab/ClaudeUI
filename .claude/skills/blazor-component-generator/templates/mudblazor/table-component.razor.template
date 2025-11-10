@@ -1,0 +1,218 @@
+@using {ProjectNamespace}.Models
+@using {ProjectNamespace}.Services
+@inject I{EntityName}Service {EntityName}Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<{EntityName}Table> Logger
+
+<MudOverlay Visible="@IsLoading" DarkBackground="true" Absolute="true">
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+</MudOverlay>
+
+<MudDataGrid T="{EntityName}"
+            Items="@Items"
+            Filterable="@Filterable"
+            SortMode="@(SortMode.Multiple)"
+            Pagination="true"
+            RowsPerPage="@RowsPerPage"
+            Hover="true"
+            Dense="@Dense"
+            Loading="@IsLoading"
+            ReadOnly="@ReadOnly">
+    <ToolBarContent>
+        @if (ShowToolbar)
+        {
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudSpacer />
+            @if (ShowSearch)
+            {
+                <MudTextField @bind-Value="_searchString"
+                             Placeholder="Search"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             IconSize="Size.Medium"
+                             Class="mt-0"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense">
+                </MudTextField>
+            }
+            @if (ShowAddButton)
+            {
+                <MudButton OnClick="@OnAddClicked"
+                          StartIcon="@Icons.Material.Filled.Add"
+                          Color="Color.Primary"
+                          Variant="Variant.Filled"
+                          Class="ml-2">
+                    Add New
+                </MudButton>
+            }
+        }
+    </ToolBarContent>
+    <Columns>
+        @if (ShowIdColumn)
+        {
+            <PropertyColumn Property="x => x.{PrimaryKeyProperty}" Title="ID" Sortable="true" />
+        }
+        <!-- {PROPERTY_COLUMNS} -->
+        @if (ShowActions)
+        {
+            <TemplateColumn CellClass="d-flex justify-end" Title="Actions" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    @if (ShowEditButton)
+                    {
+                        <MudIconButton Size="@Size.Small"
+                                      Icon="@Icons.Material.Filled.Edit"
+                                      Color="Color.Primary"
+                                      OnClick="@(() => HandleEdit(context.Item))"
+                                      Title="Edit" />
+                    }
+                    @if (ShowDeleteButton)
+                    {
+                        <MudIconButton Size="@Size.Small"
+                                      Icon="@Icons.Material.Filled.Delete"
+                                      Color="Color.Error"
+                                      OnClick="@(() => HandleDelete(context.Item))"
+                                      Title="Delete" />
+                    }
+                    @if (CustomActions != null)
+                    {
+                        @CustomActions(context.Item)
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+        }
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="{EntityName}" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    [Parameter] public List<{EntityName}> Items { get; set; } = new();
+    [Parameter] public EventCallback OnRefreshRequested { get; set; }
+    [Parameter] public EventCallback<{EntityName}> OnItemCreated { get; set; }
+    [Parameter] public EventCallback<{EntityName}> OnItemUpdated { get; set; }
+    [Parameter] public EventCallback<{EntityName}> OnItemDeleted { get; set; }
+    [Parameter] public RenderFragment<{EntityName}>? CustomActions { get; set; }
+
+    // Display Options
+    [Parameter] public bool ShowToolbar { get; set; } = true;
+    [Parameter] public bool ShowSearch { get; set; } = true;
+    [Parameter] public bool ShowAddButton { get; set; } = true;
+    [Parameter] public bool ShowActions { get; set; } = true;
+    [Parameter] public bool ShowEditButton { get; set; } = true;
+    [Parameter] public bool ShowDeleteButton { get; set; } = true;
+    [Parameter] public bool ShowIdColumn { get; set; } = true;
+    [Parameter] public string Title { get; set; } = "{EntityNamePlural}";
+
+    // Grid Options
+    [Parameter] public bool Filterable { get; set; } = true;
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public bool ReadOnly { get; set; } = false;
+    [Parameter] public int RowsPerPage { get; set; } = 10;
+    [Parameter] public bool IsLoading { get; set; } = false;
+
+    private string _searchString = string.Empty;
+
+    private async Task OnAddClicked()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Item"] = new {EntityName}(),
+            ["IsNew"] = true
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<{EntityName}Dialog>("Create {EntityName}", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var newItem = result.Data as {EntityName};
+                await {EntityName}Service.CreateAsync(newItem);
+                await OnItemCreated.InvokeAsync(newItem);
+                await OnRefreshRequested.InvokeAsync();
+                Snackbar.Add("{EntityName} created successfully", Severity.Success);
+                Logger.LogInformation("Created new {EntityName}");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error creating {EntityName}");
+                Snackbar.Add($"Error creating {EntityName}: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task HandleEdit({EntityName} item)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Item"] = item,
+            ["IsNew"] = false
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<{EntityName}Dialog>($"Edit {EntityName}", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var updatedItem = result.Data as {EntityName};
+                await {EntityName}Service.UpdateAsync(updatedItem);
+                await OnItemUpdated.InvokeAsync(updatedItem);
+                await OnRefreshRequested.InvokeAsync();
+                Snackbar.Add("{EntityName} updated successfully", Severity.Success);
+                Logger.LogInformation("Updated {EntityName} with ID: {{Id}}", updatedItem?.{PrimaryKeyProperty});
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating {EntityName}");
+                Snackbar.Add($"Error updating {EntityName}: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task HandleDelete({EntityName} item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete this {EntityName}? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            try
+            {
+                await {EntityName}Service.DeleteAsync(item.{PrimaryKeyProperty});
+                await OnItemDeleted.InvokeAsync(item);
+                await OnRefreshRequested.InvokeAsync();
+                Snackbar.Add("{EntityName} deleted successfully", Severity.Success);
+                Logger.LogInformation("Deleted {EntityName} with ID: {{Id}}", item.{PrimaryKeyProperty});
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting {EntityName}");
+                Snackbar.Add($"Error deleting {EntityName}: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

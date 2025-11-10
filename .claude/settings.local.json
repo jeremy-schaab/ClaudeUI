@@ -3,7 +3,16 @@
     "allow": [
       "Bash(claude chat --help)",
       "Bash(npm run build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /PID 42740 /F)",
+      "Bash(taskkill:*)",
+      "Bash(timeout /t 2 /nobreak)",
+      "Bash(node -e:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

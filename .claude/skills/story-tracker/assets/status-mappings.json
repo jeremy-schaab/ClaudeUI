@@ -1,0 +1,120 @@
+{
+  "statusEmojis": {
+    "complete": "✅",
+    "pending": "⏳",
+    "inProgress": "🔄",
+    "blocked": "❌",
+    "warning": "⚠️",
+    "underReview": "🔍",
+    "testing": "🧪",
+    "draft": "📝",
+    "deployed": "🚀",
+    "readyForTesting": "✅"
+  },
+  "taskStatusMarkers": {
+    "complete": "[x]",
+    "incomplete": "[ ]"
+  },
+  "phaseStatusRules": {
+    "complete": {
+      "emoji": "✅ COMPLETE",
+      "condition": "allTasksComplete"
+    },
+    "inProgress": {
+      "emoji": "⏳ IN PROGRESS",
+      "condition": "someTasksComplete"
+    },
+    "pending": {
+      "emoji": "📝 PENDING",
+      "condition": "noTasksComplete"
+    },
+    "blocked": {
+      "emoji": "❌ BLOCKED",
+      "condition": "hasBlockers"
+    }
+  },
+  "overallStatusCalculation": {
+    "notStarted": {
+      "label": "📝 Not Started",
+      "condition": "completionPercentage == 0"
+    },
+    "planning": {
+      "label": "🔍 Planning",
+      "condition": "completionPercentage < 10"
+    },
+    "inProgress": {
+      "label": "⏳ In Progress",
+      "condition": "completionPercentage >= 10 && completionPercentage < 90"
+    },
+    "testing": {
+      "label": "🧪 Testing - Implementation Complete",
+      "condition": "completionPercentage >= 90 && completionPercentage < 100"
+    },
+    "complete": {
+      "label": "✅ IMPLEMENTATION COMPLETE - Ready for Testing",
+      "condition": "completionPercentage == 100 && !deployed"
+    },
+    "deployed": {
+      "label": "🚀 Deployed to Production",
+      "condition": "deployed == true"
+    }
+  },
+  "fileChangeCategories": {
+    "backend": {
+      "patterns": [
+        "src/**/*.cs",
+        "!src/**/*.razor.cs"
+      ],
+      "label": "Backend Changes",
+      "emoji": "⚙️"
+    },
+    "frontend": {
+      "patterns": [
+        "src/**/*.razor",
+        "src/**/*.razor.cs"
+      ],
+      "label": "Frontend Components",
+      "emoji": "🎨"
+    },
+    "database": {
+      "patterns": [
+        "**/*Migration*.cs",
+        "**/*.sql",
+        "**/*.sqlproj"
+      ],
+      "label": "Database Changes",
+      "emoji": "🗄️"
+    },
+    "tests": {
+      "patterns": [
+        "tests/**/*.cs"
+      ],
+      "label": "Tests",
+      "emoji": "🧪"
+    },
+    "configuration": {
+      "patterns": [
+        "**/*.json",
+        "**/*.yml",
+        "**/*.yaml",
+        "**/appsettings*.json"
+      ],
+      "label": "Configuration Files",
+      "emoji": "⚙️"
+    },
+    "documentation": {
+      "patterns": [
+        "docs/**/*.md",
+        "**/*.md"
+      ],
+      "label": "Documentation",
+      "emoji": "📝"
+    }
+  },
+  "priorityIndicators": {
+    "1": "🔴 Critical",
+    "2": "🟠 High",
+    "3": "🟡 Medium",
+    "4": "🟢 Low"
+  }
+}

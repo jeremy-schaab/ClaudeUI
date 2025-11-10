@@ -1,0 +1,71 @@
+@using {{NAMESPACE}}.Models.ViewModels
+@using {{NAMESPACE}}.Services
+@inject I{{LOOKUP_ENTITY_NAME}}Service {{LOOKUP_ENTITY_NAME}}Service
+@inject ILogger<{{COMPONENT_NAME}}> Logger
+
+<div class="k-form-field">
+    <label class="k-label k-form-label" for="{{FIELD_NAME_LOWER}}">{{FIELD_LABEL}}</label>
+    <TelerikComboBox Data="@LookupData"
+                     @bind-Value="@SelectedValue"
+                     ValueField="@nameof({{LOOKUP_ENTITY_NAME}}Model.{{VALUE_FIELD}})"
+                     TextField="@nameof({{LOOKUP_ENTITY_NAME}}Model.{{TEXT_FIELD}})"
+                     Filterable="true"
+                     FilterOperator="@StringFilterOperator.Contains"
+                     Placeholder="Select {{FIELD_LABEL_LOWER}}"
+                     Id="{{FIELD_NAME_LOWER}}"
+                     Width="100%">
+        <ComboBoxSettings>
+            <ComboBoxPopupSettings Height="auto" MaxHeight="300px" />
+        </ComboBoxSettings>
+    </TelerikComboBox>
+    <ValidationMessage For="@(() => SelectedValue)" />
+</div>
+
+@code {
+    [Parameter] public {{VALUE_TYPE}} SelectedValue { get; set; }
+    [Parameter] public EventCallback<{{VALUE_TYPE}}> SelectedValueChanged { get; set; }
+    [Parameter] public string? FilterExpression { get; set; }
+
+    private List<{{LOOKUP_ENTITY_NAME}}Model> LookupData = new();
+    private bool IsLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupDataAsync();
+    }
+
+    private async Task LoadLookupDataAsync()
+    {
+        if (IsLoading) return;
+
+        try
+        {
+            IsLoading = true;
+
+            if (!string.IsNullOrEmpty(FilterExpression))
+            {
+                LookupData = await {{LOOKUP_ENTITY_NAME}}Service.GetFiltered{{LOOKUP_ENTITY_NAME}}sAsync(FilterExpression);
+            }
+            else
+            {
+                LookupData = await {{LOOKUP_ENTITY_NAME}}Service.GetAll{{LOOKUP_ENTITY_NAME}}sAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading {{LOOKUP_ENTITY_NAME_LOWER}} lookup data");
+            LookupData = new();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public async Task RefreshAsync(string? filterExpression = null)
+    {
+        FilterExpression = filterExpression;
+        await LoadLookupDataAsync();
+        StateHasChanged();
+    }
+}

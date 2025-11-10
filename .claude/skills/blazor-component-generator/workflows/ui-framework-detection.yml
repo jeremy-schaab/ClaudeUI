@@ -1,0 +1,213 @@
+name: UI Framework Detection
+description: Automatic detection of Blazor UI framework in use (Syncfusion/Telerik/MudBlazor)
+version: 1.0.0
+
+steps:
+  - step: 1
+    name: Search .csproj for Package References
+    action: search-packages
+    description: Search project files for framework package references
+    input:
+      - project-root
+      - search-pattern: "**/*.csproj"
+    output:
+      - csproj-files
+      - found-packages
+      - package-scores
+    detection-patterns:
+      syncfusion:
+        - "Syncfusion.Blazor"
+        - "Syncfusion.Blazor.Grid"
+        - "Syncfusion.Blazor.Inputs"
+        - "Syncfusion.Blazor.Calendars"
+        - "Syncfusion.Blazor.DropDowns"
+        - "Syncfusion.Blazor.Buttons"
+        - "Syncfusion.Blazor.Popups"
+      telerik:
+        - "Telerik.UI.for.Blazor"
+      mudblazor:
+        - "MudBlazor"
+    scoring:
+      weight: 10
+      per-match: 10
+    validation:
+      - at-least-one-csproj-found
+    onFailure: continue-to-next-step
+
+  - step: 2
+    name: Search _Imports.razor for Using Directives
+    action: search-using-directives
+    description: Search _Imports.razor files for framework using directives
+    input:
+      - project-root
+      - search-paths:
+          - "_Imports.razor"
+          - "**/Components/_Imports.razor"
+          - "**/Pages/_Imports.razor"
+    output:
+      - imports-files
+      - found-directives
+      - directive-scores
+    detection-patterns:
+      syncfusion:
+        - "@using Syncfusion.Blazor"
+        - "@using Syncfusion.Blazor.Grids"
+        - "@using Syncfusion.Blazor.Inputs"
+        - "@using Syncfusion.Blazor.Calendars"
+        - "@using Syncfusion.Blazor.DropDowns"
+        - "@using Syncfusion.Blazor.Buttons"
+        - "@using Syncfusion.Blazor.Popups"
+      telerik:
+        - "@using Telerik.Blazor"
+        - "@using Telerik.Blazor.Components"
+        - "@using Telerik.SvgIcons"
+      mudblazor:
+        - "@using MudBlazor"
+    scoring:
+      weight: 5
+      per-match: 5
+    validation:
+      - at-least-one-imports-file-found
+    onFailure: continue-to-next-step
+
+  - step: 3
+    name: Search Program.cs for Service Registration
+    action: search-service-registration
+    description: Search Program.cs or Startup.cs for framework service registration
+    input:
+      - project-root
+      - search-files:
+          - "Program.cs"
+          - "Startup.cs"
+    output:
+      - program-files
+      - found-registrations
+      - registration-scores
+    detection-patterns:
+      syncfusion:
+        - "AddSyncfusionBlazor()"
+        - "builder.Services.AddSyncfusionBlazor"
+        - "services.AddSyncfusionBlazor"
+      telerik:
+        - "AddTelerikBlazor()"
+        - "builder.Services.AddTelerikBlazor"
+        - "services.AddTelerikBlazor"
+      mudblazor:
+        - "AddMudServices()"
+        - "builder.Services.AddMudServices"
+        - "services.AddMudServices"
+    scoring:
+      weight: 8
+      per-match: 8
+    validation:
+      - at-least-one-program-file-found
+    onFailure: continue-to-next-step
+
+  - step: 4
+    name: Calculate Confidence Scores
+    action: calculate-confidence
+    description: Calculate confidence score for each framework based on detection evidence
+    input:
+      - package-scores
+      - directive-scores
+      - registration-scores
+    output:
+      - framework-scores
+      - confidence-percentages
+    calculation-formula: |
+      For each framework:
+        score = (packageMatches * 10) + (directiveMatches * 5) + (registrationMatches * 8)
+        confidence = (score / maxPossibleScore) * 100
+
+      maxPossibleScore calculation:
+        packages: 7 patterns * 10 = 70
+        directives: 7 patterns * 5 = 35
+        registrations: 3 patterns * 8 = 24
+        maxPossibleScore = 70 + 35 + 24 = 129
+    confidence-thresholds:
+      high: 70-100%
+      medium: 40-69%
+      low: 0-39%
+    validation:
+      - at-least-one-framework-detected
+    onFailure: report-no-framework-detected
+
+  - step: 5
+    name: Select Framework with Highest Confidence
+    action: select-framework
+    description: Select the framework with the highest confidence score, applying priority rules if needed
+    input:
+      - framework-scores
+      - confidence-percentages
+    output:
+      - selected-framework
+      - selected-framework-id
+      - selected-confidence-score
+      - alternative-frameworks
+    priority-rules:
+      - rule: minimum-confidence
+        value: 0.7
+        description: Framework must have at least 70% confidence
+      - rule: conflict-resolution
+        strategy: highest-priority
+        priority-order:
+          1: syncfusion
+          2: telerik
+          3: mudblazor
+        description: If multiple frameworks exceed confidence threshold, use highest priority
+      - rule: exact-match
+        value: 100%
+        description: If any framework has 100% match, use it regardless of others
+    validation:
+      - selected-framework-valid
+      - confidence-meets-threshold
+    onFailure: prompt-user-for-selection
+
+  - step: 6
+    name: Generate Detection Report
+    action: generate-report
+    description: Generate detailed report of framework detection with all evidence
+    input:
+      - selected-framework
+      - selected-confidence-score
+      - framework-scores
+      - found-packages
+      - found-directives
+      - found-registrations
+      - alternative-frameworks
+    output:
+      - detection-report
+      - framework-details
+      - evidence-summary
+      - recommendation
+    report-format:
+      sections:
+        - detected-framework
+        - confidence-score
+        - detection-evidence:
+            - packages-found
+            - directives-found
+            - registrations-found
+        - alternative-frameworks
+        - framework-characteristics:
+            - installation-required
+            - license-type
+            - themes-available
+        - next-steps
+
+fallback:
+  behavior: prompt-user
+  message: "Unable to detect UI framework automatically. Please select one: Syncfusion, Telerik, or MudBlazor"
+  default: null
+  timeout: 300
+
+summary:
+  total-steps: 6
+  success-criteria:
+    - all-search-steps-completed
+    - scores-calculated
+    - framework-selected
+  error-handling:
+    - automatic-retry: false
+    - fallback-option: user-prompt
+    - error-recovery: continue-to-fallback

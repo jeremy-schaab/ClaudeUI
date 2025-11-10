@@ -1,0 +1,91 @@
+skill_name: blazor-component-generator
+test_suite_version: "1.0"
+description: Test suite for blazor-component-generator skill - validates Blazor component generation with Syncfusion, Telerik, and MudBlazor
+
+test_cases:
+  - id: TC-BLAZOR-001
+    name: Generate Syncfusion CRUD Page
+    priority: high
+    input:
+      user_request: "Generate a complete CRUD page for Product entity using Syncfusion DataGrid with dialog for add/edit"
+      context_files: []
+    expected_outputs:
+      - file: Components/Pages/Products.razor
+        patterns:
+          - "@page \"/products\""
+          - "SfGrid"
+          - "SfDialog"
+          - "GridColumn"
+          - "CommandColumn"
+          - "@inject"
+          - "OnActionBegin"
+          - "OnActionComplete"
+      - file: Components/Pages/Products.razor.cs
+        patterns:
+          - "public partial class Products"
+          - "List<Product>"
+          - "IProductService"
+          - "protected override async Task OnInitializedAsync"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: false
+    notes: "Validates Syncfusion component usage, CRUD patterns, and dependency injection. Test execution disabled (requires Blazor runtime)."
+
+  - id: TC-BLAZOR-002
+    name: Generate MudBlazor Data Table
+    priority: medium
+    input:
+      user_request: "Create a data table component for Orders using MudBlazor with filtering and sorting"
+      context_files: []
+    expected_outputs:
+      - file: Components/OrderTable.razor
+        patterns:
+          - "MudDataGrid"
+          - "MudTable"
+          - "PropertyColumn"
+          - "FilterDefinition"
+          - "SortLabel"
+          - "@typeparam"
+          - "QuickFilter"
+      - file: Components/OrderTable.razor.cs
+        patterns:
+          - "public partial class OrderTable"
+          - "List<Order>"
+          - "Func<Order, bool>"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: false
+    notes: "Validates MudBlazor patterns, filtering/sorting, and generic components."
+
+  - id: TC-BLAZOR-003
+    name: Generate Telerik Form Dialog
+    priority: medium
+    input:
+      user_request: "Generate a Telerik form dialog for Customer entity with validation"
+      context_files: []
+    expected_outputs:
+      - file: Components/CustomerFormDialog.razor
+        patterns:
+          - "TelerikWindow"
+          - "TelerikForm"
+          - "FormItem"
+          - "FormValidation"
+          - "OnValidSubmit"
+          - "EditContext"
+          - "@bind-Visible"
+      - file: Components/CustomerFormDialog.razor.cs
+        patterns:
+          - "public partial class CustomerFormDialog"
+          - "Customer"
+          - "EventCallback"
+          - "EditContext"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: false
+    notes: "Validates Telerik form patterns, validation, and event callbacks. Requires Telerik.UI.for.Blazor package."

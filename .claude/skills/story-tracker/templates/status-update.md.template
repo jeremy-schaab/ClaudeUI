@@ -1,0 +1,25 @@
+### {{DATE}} - {{TITLE}} {{STATUS_EMOJI}}
+{{#if DESCRIPTION}}
+{{DESCRIPTION}}
+{{/if}}
+
+{{#if COMPLETED_TASKS}}
+**Completed:**
+{{#each COMPLETED_TASKS}}
+- ✅ {{this}}
+{{/each}}
+{{/if}}
+
+{{#if FINDINGS}}
+**Findings:**
+{{#each FINDINGS}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+{{#if NEXT_STEPS}}
+**Next Steps:**
+{{#each NEXT_STEPS}}
+- {{this}}
+{{/each}}
+{{/if}}

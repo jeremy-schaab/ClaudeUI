@@ -1,0 +1,102 @@
+name: Full Test Suite Generation
+description: Generate complete test suite for a class including unit, integration, and edge cases
+
+variables:
+  SOURCE_FILE: ""
+  TEST_PROJECT: ""
+  CLASS_TYPE: ""
+
+steps:
+  - name: analyze
+    description: Analyze source file structure and patterns
+    script: scripts/analyze-code.sh
+    args:
+      - "${SOURCE_FILE}"
+    output: analysis.json
+    on_success: proceed
+    on_failure: abort
+
+  - name: determine_test_types
+    description: Determine which types of tests to generate
+    condition: success
+    actions:
+      - set_variable:
+          name: NEEDS_UNIT_TESTS
+          value: true
+      - set_variable:
+          name: NEEDS_INTEGRATION_TESTS
+          value: ${analysis.recommendations.integrationTests}
+      - set_variable:
+          name: NEEDS_SAGA_TESTS
+          value: ${analysis.recommendations.sagaTests}
+      - set_variable:
+          name: NEEDS_COMPONENT_TESTS
+          value: ${analysis.recommendations.componentTests}
+
+  - name: generate_unit_tests
+    description: Generate unit tests
+    condition: ${NEEDS_UNIT_TESTS} == true
+    script: scripts/generate-tests.sh
+    args:
+      - "${SOURCE_FILE}"
+      - "unit"
+    depends_on:
+      - analyze
+
+  - name: generate_integration_tests
+    description: Generate integration tests (if applicable)
+    condition: ${NEEDS_INTEGRATION_TESTS} == true
+    script: scripts/generate-tests.sh
+    args:
+      - "${SOURCE_FILE}"
+      - "integration"
+    depends_on:
+      - analyze
+
+  - name: generate_saga_tests
+    description: Generate saga tests (if applicable)
+    condition: ${NEEDS_SAGA_TESTS} == true
+    script: scripts/generate-tests.sh
+    args:
+      - "${SOURCE_FILE}"
+      - "saga"
+    depends_on:
+      - analyze
+
+  - name: generate_component_tests
+    description: Generate component tests (if applicable)
+    condition: ${NEEDS_COMPONENT_TESTS} == true
+    script: scripts/generate-tests.sh
+    args:
+      - "${SOURCE_FILE}"
+      - "component"
+    depends_on:
+      - analyze
+
+  - name: run_tests
+    description: Run generated tests to verify they compile
+    script: scripts/run-tests.sh
+    args:
+      - "--project"
+      - "${TEST_PROJECT}"
+    depends_on:
+      - generate_unit_tests
+      - generate_integration_tests
+      - generate_saga_tests
+      - generate_component_tests
+
+  - name: report
+    description: Generate test coverage report
+    script: scripts/run-tests.sh
+    args:
+      - "--project"
+      - "${TEST_PROJECT}"
+      - "--coverage"
+    depends_on:
+      - run_tests
+
+notifications:
+  on_success:
+    message: "✅ Test suite generation complete for ${CLASS_NAME}"
+  on_failure:
+    message: "❌ Test suite generation failed. Check logs for details."

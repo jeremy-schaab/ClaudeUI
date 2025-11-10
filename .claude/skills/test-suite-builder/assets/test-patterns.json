@@ -1,0 +1,175 @@
+{
+  "dotnetPatterns": {
+    "testProjects": {
+      "services": "tests/{ProjectName}.Services.Tests",
+      "infrastructure": "tests/{ProjectName}.Infrastructure.Tests",
+      "components": "tests/{ProjectName}.Components.Tests",
+      "webapi": "tests/{ProjectName}.Tests",
+      "core": "tests/{ProjectName}.Core.Tests",
+      "application": "tests/{ProjectName}.Application.Tests",
+      "domain": "tests/{ProjectName}.Domain.Tests"
+    },
+    "baseClasses": {
+      "unit": "TestBase",
+      "integration": "IClassFixture<WebApplicationFactory<Program>>",
+      "saga": "InMemoryTestFixture",
+      "component": "ComponentTestBase"
+    },
+    "asyncPatterns": [
+      "async Task",
+      "Task<",
+      "ValueTask<",
+      "IAsyncEnumerable"
+    ],
+    "repositoryPatterns": [
+      "Repository",
+      "IRepository",
+      "DbContext",
+      "GetByIdAsync",
+      "AddAsync",
+      "UpdateAsync",
+      "DeleteAsync",
+      "FindAsync",
+      "SaveChangesAsync"
+    ],
+    "servicePatterns": [
+      "Service",
+      "IService",
+      "Manager",
+      "IManager",
+      "Handler",
+      "IHandler"
+    ],
+    "sagaPatterns": [
+      "MassTransitStateMachine",
+      "SagaStateMachine",
+      "State ",
+      "Event<",
+      "Initially",
+      "During",
+      "TransitionTo"
+    ],
+    "controllerPatterns": [
+      "Controller",
+      "ControllerBase",
+      "[HttpGet]",
+      "[HttpPost]",
+      "[HttpPut]",
+      "[HttpDelete]",
+      "[Route",
+      "ActionResult"
+    ]
+  },
+  "testMethodNaming": {
+    "pattern": "{MethodName}_{Scenario}_{ExpectedResult}",
+    "examples": [
+      "GetUserAsync_ValidUserId_ReturnsUser",
+      "CreateUserAsync_DuplicateUserId_ThrowsException",
+      "UpdateUserAsync_UserNotFound_ReturnsNull",
+      "GetUsersAsync_WithFilter_ReturnsFilteredUsers",
+      "ProcessSaga_HappyPath_TransitionsToCompleted"
+    ]
+  },
+  "assertions": {
+    "library": "FluentAssertions",
+    "patterns": {
+      "notNull": "result.Should().NotBeNull()",
+      "null": "result.Should().BeNull()",
+      "equal": "result.Should().Be(expected)",
+      "notEqual": "result.Should().NotBe(unexpected)",
+      "true": "result.Should().BeTrue()",
+      "false": "result.Should().BeFalse()",
+      "throw": "act.Should().ThrowAsync<{ExceptionType}>()",
+      "throwWithMessage": "act.Should().ThrowAsync<{ExceptionType}>().WithMessage({message})",
+      "collection": "result.Should().HaveCount(expectedCount)",
+      "collectionEmpty": "result.Should().BeEmpty()",
+      "collectionNotEmpty": "result.Should().NotBeEmpty()",
+      "contain": "result.Should().Contain(expectedItem)",
+      "notContain": "result.Should().NotContain(unexpectedItem)",
+      "equivalent": "result.Should().BeEquivalentTo(expected)",
+      "type": "result.Should().BeOfType<{Type}>()"
+    }
+  },
+  "mocking": {
+    "library": "Moq",
+    "namingConvention": "_mock{InterfaceName}",
+    "patterns": {
+      "setup": "_{mockName}.Setup(x => x.{Method}({params})).ReturnsAsync({value})",
+      "setupThrows": "_{mockName}.Setup(x => x.{Method}({params})).ThrowsAsync(new {ExceptionType}())",
+      "setupReturns": "_{mockName}.Setup(x => x.{Method}({params})).Returns({value})",
+      "verify": "_{mockName}.Verify(x => x.{Method}({params}), Times.{count})",
+      "verifyNever": "_{mockName}.Verify(x => x.{Method}({params}), Times.Never)",
+      "verifyOnce": "_{mockName}.Verify(x => x.{Method}({params}), Times.Once)",
+      "verifyAny": "_{mockName}.Verify(x => x.{Method}(It.IsAny<{Type}>()))"
+    }
+  },
+  "testCategories": {
+    "unit": {
+      "attribute": "[Fact]",
+      "description": "Unit test for a single method",
+      "framework": "xUnit"
+    },
+    "theory": {
+      "attribute": "[Theory]",
+      "description": "Parameterized test with multiple data sets",
+      "framework": "xUnit"
+    },
+    "integration": {
+      "attribute": "[Fact]",
+      "description": "Integration test across multiple components",
+      "framework": "xUnit"
+    }
+  },
+  "commonTestScenarios": {
+    "nullInput": {
+      "scenario": "NullInput",
+      "expectedResult": "ThrowsArgumentNullException",
+      "template": "null parameter validation"
+    },
+    "validInput": {
+      "scenario": "ValidInput",
+      "expectedResult": "ReturnsExpectedResult",
+      "template": "happy path test"
+    },
+    "notFound": {
+      "scenario": "EntityNotFound",
+      "expectedResult": "ReturnsNull",
+      "template": "entity not found test"
+    },
+    "duplicate": {
+      "scenario": "DuplicateEntity",
+      "expectedResult": "ThrowsException",
+      "template": "duplicate entity test"
+    },
+    "unauthorized": {
+      "scenario": "UnauthorizedAccess",
+      "expectedResult": "ThrowsUnauthorizedException",
+      "template": "authorization test"
+    },
+    "invalidInput": {
+      "scenario": "InvalidInput",
+      "expectedResult": "ThrowsValidationException",
+      "template": "validation test"
+    }
+  },
+  "edgeCases": {
+    "emptyString": "String.Empty",
+    "whitespace": "\"   \"",
+    "emptyGuid": "Guid.Empty",
+    "emptyCollection": "new List<T>()",
+    "maxInt": "int.MaxValue",
+    "minInt": "int.MinValue",
+    "pastDate": "DateTime.MinValue",
+    "futureDate": "DateTime.MaxValue",
+    "zero": "0",
+    "negativeNumber": "-1"
+  },
+  "testDataBuilders": {
+    "pattern": "{EntityName}Builder",
+    "examples": [
+      "UserBuilder",
+      "OrderBuilder",
+      "ProductBuilder"
+    ]
+  }
+}

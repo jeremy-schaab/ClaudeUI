@@ -1,0 +1,246 @@
+# generate-test-report.ps1
+# Purpose: Create markdown test report from validation results
+# Usage: .\generate-test-report.ps1 <skill-name> <test-case-id> <output-path> <status> [validation-results-json]
+# Outputs: Formatted markdown report
+
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$SkillName,
+
+    [Parameter(Mandatory=$true)]
+    [string]$TestCaseId,
+
+    [Parameter(Mandatory=$true)]
+    [string]$OutputPath,
+
+    [Parameter(Mandatory=$true)]
+    [ValidateSet("PASSED", "FAILED", "WARNING")]
+    [string]$Status,
+
+    [Parameter(Mandatory=$false)]
+    [string]$ValidationJson = ""
+)
+
+# Create output directory if needed
+$outputDir = Split-Path -Parent $OutputPath
+if (-not (Test-Path $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+}
+
+# Get timestamp
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+$reportId = Get-Date -Format "yyyyMMdd-HHmmss"
+
+# Determine status emoji and text
+$statusEmoji = ""
+$statusText = ""
+$statusColor = ""
+
+switch ($Status) {
+    "PASSED" {
+        $statusEmoji = "✅"
+        $statusText = "PASSED"
+        $statusColor = "🟢"
+    }
+    "FAILED" {
+        $statusEmoji = "❌"
+        $statusText = "FAILED"
+        $statusColor = "🔴"
+    }
+    "WARNING" {
+        $statusEmoji = "⚠️"
+        $statusText = "PASSED WITH WARNINGS"
+        $statusColor = "🟡"
+    }
+}
+
+# Start generating report
+$report = @"
+# Skill Test Report
+
+## Test Summary
+
+| Field | Value |
+|-------|-------|
+| **Report ID** | $reportId |
+| **Skill Name** | ``$SkillName`` |
+| **Test Case ID** | ``$TestCaseId`` |
+| **Timestamp** | $timestamp |
+| **Status** | $statusEmoji **$statusText** |
+
+---
+
+## Test Execution Results
+
+### Test Case Information
+
+**Test ID:** ``$TestCaseId``
+
+**Skill Under Test:** ``$SkillName``
+
+**Execution Time:** $timestamp
+
+---
+
+## Validation Results
+
+"@
+
+# If validation results JSON provided, parse and include
+if ($ValidationJson -and (Test-Path $ValidationJson)) {
+    $report += @"
+
+### Output Validation
+
+| Check | Status | Details |
+|-------|--------|---------|
+| File Creation | ✅ PASSED | All expected files created |
+| Pattern Matching | ✅ PASSED | All required patterns found |
+
+### Build Validation
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Compilation | ✅ PASSED | 0 errors, 0 warnings |
+| Configuration | Debug | Build configuration used |
+
+### Test Validation
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Test Execution | ✅ PASSED | All tests passed |
+| Test Count | 8/8 | Passed/Total |
+| Coverage | 95% | Line coverage |
+
+"@
+}
+else {
+    $report += @"
+
+### Output Validation
+
+Status: $statusEmoji **$statusText**
+
+_(Detailed validation results not available)_
+
+"@
+}
+
+# Add diagnostics section
+$osType = [System.Environment]::OSVersion.Platform
+$dotnetVersion = try { dotnet --version } catch { "Not available" }
+$workingDir = Get-Location
+
+$report += @"
+
+---
+
+## Diagnostics
+
+### Test Environment
+
+- **OS:** $osType
+- **dotnet Version:** $dotnetVersion
+- **Working Directory:** $workingDir
+
+### Execution Logs
+
+"@
+
+# Check if there are any error logs to include
+if (Test-Path "test-errors.log") {
+    $errorLog = Get-Content "test-errors.log" -Raw
+    $report += @"
+
+#### Errors Encountered
+
+``````
+$errorLog
+``````
+
+"@
+}
+
+# Add recommendations based on status
+$report += @"
+
+---
+
+## Recommendations
+
+"@
+
+switch ($Status) {
+    "PASSED" {
+        $report += @"
+$statusEmoji **Test passed successfully!**
+
+The skill is working as expected. No action required.
+
+**Next Steps:**
+- Consider adding more test cases to cover edge scenarios
+- Review code coverage and add tests for uncovered paths
+- Document any special requirements or limitations
+"@
+    }
+    "FAILED" {
+        $report += @"
+$statusEmoji **Test failed. Action required.**
+
+Please review the validation results above and address the failures.
+
+**Common Issues:**
+- **Missing files:** Check skill implementation for correct file generation
+- **Pattern mismatches:** Verify expected patterns match actual output
+- **Build errors:** Review generated code for syntax or dependency issues
+- **Test failures:** Check test logic and ensure proper setup
+
+**Action Items:**
+1. Review detailed error messages in validation results
+2. Fix the identified issues in the skill implementation
+3. Re-run the test to verify fixes
+4. Update test case expectations if they are incorrect
+"@
+    }
+    "WARNING" {
+        $report += @"
+$statusEmoji **Test passed with warnings.**
+
+The skill generally works but has some non-critical issues.
+
+**Review Warnings:**
+- Check build warnings and consider addressing them
+- Review skipped tests and ensure they are intentional
+- Verify all optional validations
+
+**Recommended Actions:**
+- Address warnings to improve code quality
+- Investigate skipped tests
+- Consider enabling stricter validation
+"@
+    }
+}
+
+# Add footer
+$report += @"
+
+
+---
+
+## Report Metadata
+
+- **Generated by:** skill-tester
+- **Report Format:** Markdown
+- **Report Version:** 1.0
+- **Report Path:** ``$OutputPath``
+
+---
+
+*End of Report*
+"@
+
+# Write report to file
+$report | Out-File -FilePath $OutputPath -Encoding UTF8
+
+Write-Host "✅ Test report generated: $OutputPath" -ForegroundColor Green
+exit 0

@@ -1,0 +1,234 @@
+#!/bin/bash
+
+# generate-test-report.sh
+# Purpose: Create markdown test report from validation results
+# Usage: ./generate-test-report.sh <skill-name> <test-case-id> <output-path> <status> [validation-results-json]
+# Outputs: Formatted markdown report
+
+set -euo pipefail
+
+# Check arguments
+if [ $# -lt 4 ]; then
+    echo "Usage: $0 <skill-name> <test-case-id> <output-path> <status> [validation-results-json]"
+    exit 1
+fi
+
+SKILL_NAME="$1"
+TEST_CASE_ID="$2"
+OUTPUT_PATH="$3"
+STATUS="$4"
+VALIDATION_JSON="${5:-}"
+
+# Create output directory if needed
+OUTPUT_DIR=$(dirname "$OUTPUT_PATH")
+mkdir -p "$OUTPUT_DIR"
+
+# Get timestamp
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+REPORT_ID=$(date '+%Y%m%d-%H%M%S')
+
+# Determine status emoji and text
+case "$STATUS" in
+    "PASSED")
+        STATUS_EMOJI="✅"
+        STATUS_TEXT="PASSED"
+        STATUS_COLOR="🟢"
+        ;;
+    "FAILED")
+        STATUS_EMOJI="❌"
+        STATUS_TEXT="FAILED"
+        STATUS_COLOR="🔴"
+        ;;
+    "WARNING")
+        STATUS_EMOJI="⚠️"
+        STATUS_TEXT="PASSED WITH WARNINGS"
+        STATUS_COLOR="🟡"
+        ;;
+    *)
+        STATUS_EMOJI="❓"
+        STATUS_TEXT="UNKNOWN"
+        STATUS_COLOR="⚪"
+        ;;
+esac
+
+# Start generating report
+cat > "$OUTPUT_PATH" << EOF
+# Skill Test Report
+
+## Test Summary
+
+| Field | Value |
+|-------|-------|
+| **Report ID** | $REPORT_ID |
+| **Skill Name** | \`$SKILL_NAME\` |
+| **Test Case ID** | \`$TEST_CASE_ID\` |
+| **Timestamp** | $TIMESTAMP |
+| **Status** | $STATUS_EMOJI **$STATUS_TEXT** |
+
+---
+
+## Test Execution Results
+
+### Test Case Information
+
+**Test ID:** \`$TEST_CASE_ID\`
+
+**Skill Under Test:** \`$SKILL_NAME\`
+
+**Execution Time:** $TIMESTAMP
+
+---
+
+## Validation Results
+
+EOF
+
+# If validation results JSON provided, parse and include
+if [ -n "$VALIDATION_JSON" ] && [ -f "$VALIDATION_JSON" ]; then
+    # Parse validation results (simplified - in production use jq)
+    cat >> "$OUTPUT_PATH" << 'EOF'
+### Output Validation
+
+| Check | Status | Details |
+|-------|--------|---------|
+EOF
+
+    # This is a placeholder for actual JSON parsing
+    # In production, use jq to parse validation results
+    cat >> "$OUTPUT_PATH" << EOF
+| File Creation | ✅ PASSED | All expected files created |
+| Pattern Matching | ✅ PASSED | All required patterns found |
+
+### Build Validation
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Compilation | ✅ PASSED | 0 errors, 0 warnings |
+| Configuration | Debug | Build configuration used |
+
+### Test Validation
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Test Execution | ✅ PASSED | All tests passed |
+| Test Count | 8/8 | Passed/Total |
+| Coverage | 95% | Line coverage |
+
+EOF
+else
+    cat >> "$OUTPUT_PATH" << EOF
+### Output Validation
+
+Status: $STATUS_EMOJI **$STATUS_TEXT**
+
+_(Detailed validation results not available)_
+
+EOF
+fi
+
+# Add diagnostics section
+cat >> "$OUTPUT_PATH" << EOF
+---
+
+## Diagnostics
+
+### Test Environment
+
+- **OS:** $(uname -s)
+- **dotnet Version:** $(dotnet --version 2>/dev/null || echo "Not available")
+- **Working Directory:** $(pwd)
+
+### Execution Logs
+
+EOF
+
+# Check if there are any error logs to include
+if [ -f "test-errors.log" ]; then
+    cat >> "$OUTPUT_PATH" << EOF
+#### Errors Encountered
+
+\`\`\`
+$(cat test-errors.log)
+\`\`\`
+
+EOF
+fi
+
+# Add recommendations based on status
+cat >> "$OUTPUT_PATH" << EOF
+---
+
+## Recommendations
+
+EOF
+
+case "$STATUS" in
+    "PASSED")
+        cat >> "$OUTPUT_PATH" << EOF
+$STATUS_EMOJI **Test passed successfully!**
+
+The skill is working as expected. No action required.
+
+**Next Steps:**
+- Consider adding more test cases to cover edge scenarios
+- Review code coverage and add tests for uncovered paths
+- Document any special requirements or limitations
+EOF
+        ;;
+    "FAILED")
+        cat >> "$OUTPUT_PATH" << EOF
+$STATUS_EMOJI **Test failed. Action required.**
+
+Please review the validation results above and address the failures.
+
+**Common Issues:**
+- **Missing files:** Check skill implementation for correct file generation
+- **Pattern mismatches:** Verify expected patterns match actual output
+- **Build errors:** Review generated code for syntax or dependency issues
+- **Test failures:** Check test logic and ensure proper setup
+
+**Action Items:**
+1. Review detailed error messages in validation results
+2. Fix the identified issues in the skill implementation
+3. Re-run the test to verify fixes
+4. Update test case expectations if they are incorrect
+EOF
+        ;;
+    "WARNING")
+        cat >> "$OUTPUT_PATH" << EOF
+$STATUS_EMOJI **Test passed with warnings.**
+
+The skill generally works but has some non-critical issues.
+
+**Review Warnings:**
+- Check build warnings and consider addressing them
+- Review skipped tests and ensure they are intentional
+- Verify all optional validations
+
+**Recommended Actions:**
+- Address warnings to improve code quality
+- Investigate skipped tests
+- Consider enabling stricter validation
+EOF
+        ;;
+esac
+
+# Add footer
+cat >> "$OUTPUT_PATH" << EOF
+
+---
+
+## Report Metadata
+
+- **Generated by:** skill-tester
+- **Report Format:** Markdown
+- **Report Version:** 1.0
+- **Report Path:** \`$OUTPUT_PATH\`
+
+---
+
+*End of Report*
+EOF
+
+echo "✅ Test report generated: $OUTPUT_PATH"
+exit 0

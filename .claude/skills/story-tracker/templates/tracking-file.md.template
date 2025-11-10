@@ -1,0 +1,166 @@
+# Story {{STORY_NUMBER}} - Implementation Tracking
+
+**Story:** {{STORY_TITLE}}
+
+{{#if FEATURES}}
+**Features:**
+{{#each FEATURES}}
+{{@index}}. {{this}}
+{{/each}}
+{{/if}}
+
+**Started:** {{START_DATE}}
+{{#if COMPLETED_DATE}}
+**Completed:** {{COMPLETED_DATE}}
+{{/if}}
+**Status:** {{STATUS}}
+
+---
+
+## Implementation Progress
+
+{{#each PHASES}}
+### {{PHASE_NAME}} {{PHASE_STATUS}}
+
+#### ✅ Completed Tasks
+{{#each COMPLETED_TASKS}}
+- [x] {{this}}
+{{/each}}
+
+{{#if PENDING_TASKS}}
+#### ⏳ Pending Tasks
+{{#each PENDING_TASKS}}
+- [ ] {{this}}
+{{/each}}
+{{/if}}
+
+{{/each}}
+
+---
+
+## Current Status Update
+
+### {{CURRENT_DATE}} - Implementation Started
+- ✅ Story {{STORY_NUMBER}} tracking file created
+- ✅ Implementation plan reviewed
+{{#if INITIAL_NOTES}}
+- {{INITIAL_NOTES}}
+{{/if}}
+
+---
+
+## Implementation Notes
+
+### Key Findings
+{{#if KEY_FINDINGS}}
+{{KEY_FINDINGS}}
+{{else}}
+- To be documented during implementation
+{{/if}}
+
+### Technical Decisions
+{{#if TECHNICAL_DECISIONS}}
+{{TECHNICAL_DECISIONS}}
+{{else}}
+- To be documented during implementation
+{{/if}}
+
+### Blockers
+{{#if BLOCKERS}}
+{{BLOCKERS}}
+{{else}}
+None currently
+{{/if}}
+
+### Questions/Risks
+{{#if QUESTIONS}}
+{{QUESTIONS}}
+{{else}}
+- To be identified during implementation
+{{/if}}
+
+---
+
+## Files Modified
+
+### Story Documentation
+- ✅ `docs/stories/devops/{{STORY_NUMBER}}-{{STORY_SLUG}}.md` (Initial story)
+- ✅ `docs/stories/devops/{{STORY_NUMBER}}-implementation-tracking.md` (This file)
+
+### Backend Changes
+{{#if BACKEND_FILES}}
+{{#each BACKEND_FILES}}
+- {{STATUS}} `{{FILE_PATH}}` ({{COMMIT_HASH}})
+{{/each}}
+{{else}}
+- To be tracked during implementation
+{{/if}}
+
+### Frontend Components
+{{#if FRONTEND_FILES}}
+{{#each FRONTEND_FILES}}
+- {{STATUS}} `{{FILE_PATH}}` ({{COMMIT_HASH}})
+{{/each}}
+{{else}}
+- To be tracked during implementation
+{{/if}}
+
+### Database Changes
+{{#if DATABASE_FILES}}
+{{#each DATABASE_FILES}}
+- {{STATUS}} `{{FILE_PATH}}` ({{COMMIT_HASH}})
+{{/each}}
+{{else}}
+- To be tracked if needed
+{{/if}}
+
+### Tests
+{{#if TEST_FILES}}
+{{#each TEST_FILES}}
+- {{STATUS}} `{{FILE_PATH}}` ({{COMMIT_HASH}})
+{{/each}}
+{{else}}
+- To be tracked during implementation
+{{/if}}
+
+---
+
+## Implementation Summary
+
+### ✅ What Was Built
+{{#if IMPLEMENTATION_SUMMARY}}
+{{IMPLEMENTATION_SUMMARY}}
+{{else}}
+To be documented upon completion
+{{/if}}
+
+### How It Works
+{{#if HOW_IT_WORKS}}
+{{HOW_IT_WORKS}}
+{{else}}
+To be documented upon completion
+{{/if}}
+
+---
+
+## Next Actions
+
+### Immediate
+{{#if NEXT_ACTIONS}}
+{{#each NEXT_ACTIONS}}
+{{@index}}. {{STATUS}} {{this}}
+{{/each}}
+{{else}}
+1. ⏳ Begin implementation of Phase 1
+2. ⏳ Track progress in this file
+3. ⏳ Update file tracking after each commit
+{{/if}}
+
+### Future Enhancements (Optional)
+{{#if FUTURE_ENHANCEMENTS}}
+{{#each FUTURE_ENHANCEMENTS}}
+- {{this}}
+{{/each}}
+{{else}}
+- To be identified during implementation
+{{/if}}

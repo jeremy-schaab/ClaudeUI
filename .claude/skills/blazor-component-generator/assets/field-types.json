@@ -1,0 +1,526 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Field Type to Component Mapping (Multi-Framework)",
+  "description": "Maps C# types to appropriate UI components for Syncfusion, Telerik, and MudBlazor",
+  "typeToEditor": {
+    "System.String": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "FloatLabelType": "FloatLabelType.Auto",
+          "Placeholder": "Enter {FieldName}"
+        }
+      },
+      "telerik": {
+        "component": "TelerikTextBox",
+        "defaultAttributes": {
+          "Placeholder": "Enter {FieldName}"
+        }
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined"
+        }
+      }
+    },
+    "System.String_Multiline": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "Multiline": "true",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikTextArea",
+        "defaultAttributes": {
+          "Rows": "5"
+        }
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "Lines": "5"
+        }
+      }
+    },
+    "System.Int32": {
+      "syncfusion": {
+        "component": "SfNumericTextBox<int>",
+        "defaultAttributes": {
+          "Format": "N0",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikNumericTextBox<int>",
+        "defaultAttributes": {
+          "Decimals": "0",
+          "Format": "N0"
+        }
+      },
+      "mudblazor": {
+        "component": "MudNumericField<int>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "Format": "N0"
+        }
+      }
+    },
+    "System.Int64": {
+      "syncfusion": {
+        "component": "SfNumericTextBox<long>",
+        "defaultAttributes": {
+          "Format": "N0",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikNumericTextBox<long>",
+        "defaultAttributes": {
+          "Decimals": "0",
+          "Format": "N0"
+        }
+      },
+      "mudblazor": {
+        "component": "MudNumericField<long>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "Format": "N0"
+        }
+      }
+    },
+    "System.Decimal": {
+      "syncfusion": {
+        "component": "SfNumericTextBox<decimal>",
+        "defaultAttributes": {
+          "Format": "C2",
+          "Min": "0",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikNumericTextBox<decimal>",
+        "defaultAttributes": {
+          "Decimals": "2",
+          "Format": "C2",
+          "Min": "0"
+        }
+      },
+      "mudblazor": {
+        "component": "MudNumericField<decimal>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "Format": "C2",
+          "Min": "0"
+        }
+      }
+    },
+    "System.Double": {
+      "syncfusion": {
+        "component": "SfNumericTextBox<double>",
+        "defaultAttributes": {
+          "Format": "N2",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikNumericTextBox<double>",
+        "defaultAttributes": {
+          "Decimals": "2",
+          "Format": "N2"
+        }
+      },
+      "mudblazor": {
+        "component": "MudNumericField<double>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "Format": "N2"
+        }
+      }
+    },
+    "System.DateTime": {
+      "syncfusion": {
+        "component": "SfDatePicker<DateTime>",
+        "defaultAttributes": {
+          "Format": "yyyy-MM-dd",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikDatePicker<DateTime>",
+        "defaultAttributes": {
+          "Format": "yyyy-MM-dd"
+        }
+      },
+      "mudblazor": {
+        "component": "MudDatePicker",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "DateFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    "System.DateTimeOffset": {
+      "syncfusion": {
+        "component": "SfDatePicker<DateTimeOffset>",
+        "defaultAttributes": {
+          "Format": "yyyy-MM-dd",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikDatePicker<DateTimeOffset>",
+        "defaultAttributes": {
+          "Format": "yyyy-MM-dd"
+        }
+      },
+      "mudblazor": {
+        "component": "MudDatePicker",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "DateFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    "System.DateOnly": {
+      "syncfusion": {
+        "component": "SfDatePicker<DateOnly>",
+        "defaultAttributes": {
+          "Format": "yyyy-MM-dd",
+          "FloatLabelType": "FloatLabelType.Auto"
+        }
+      },
+      "telerik": {
+        "component": "TelerikDatePicker<DateOnly>",
+        "defaultAttributes": {
+          "Format": "yyyy-MM-dd"
+        }
+      },
+      "mudblazor": {
+        "component": "MudDatePicker",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "DateFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    "System.Boolean": {
+      "syncfusion": {
+        "component": "SfCheckBox",
+        "defaultAttributes": {
+          "Label": "{FieldName}"
+        }
+      },
+      "telerik": {
+        "component": "TelerikCheckBox",
+        "defaultAttributes": {}
+      },
+      "mudblazor": {
+        "component": "MudCheckBox<bool>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Color": "Color.Primary"
+        }
+      }
+    },
+    "System.Guid": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "Enabled": "false",
+          "FloatLabelType": "FloatLabelType.Auto"
+        },
+        "displayOnly": true
+      },
+      "telerik": {
+        "component": "TelerikTextBox",
+        "defaultAttributes": {
+          "Enabled": "false"
+        },
+        "displayOnly": true
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "{FieldName}",
+          "Variant": "Variant.Outlined",
+          "Disabled": "true"
+        },
+        "displayOnly": true
+      }
+    }
+  },
+  "specialPatterns": {
+    "Email": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "FloatLabelType": "FloatLabelType.Auto",
+          "Placeholder": "user@example.com"
+        },
+        "validation": "[EmailAddress]"
+      },
+      "telerik": {
+        "component": "TelerikTextBox",
+        "defaultAttributes": {
+          "InputMode": "email",
+          "Placeholder": "user@example.com"
+        },
+        "validation": "[EmailAddress]"
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "Email",
+          "Variant": "Variant.Outlined",
+          "InputType": "InputType.Email"
+        },
+        "validation": "[EmailAddress]"
+      }
+    },
+    "Phone": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "FloatLabelType": "FloatLabelType.Auto",
+          "Placeholder": "(555) 123-4567"
+        },
+        "validation": "[Phone]"
+      },
+      "telerik": {
+        "component": "TelerikTextBox",
+        "defaultAttributes": {
+          "InputMode": "tel",
+          "Placeholder": "(555) 123-4567"
+        },
+        "validation": "[Phone]"
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "Phone",
+          "Variant": "Variant.Outlined",
+          "InputType": "InputType.Telephone"
+        },
+        "validation": "[Phone]"
+      }
+    },
+    "Url": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "FloatLabelType": "FloatLabelType.Auto",
+          "Placeholder": "https://example.com"
+        },
+        "validation": "[Url]"
+      },
+      "telerik": {
+        "component": "TelerikTextBox",
+        "defaultAttributes": {
+          "InputMode": "url",
+          "Placeholder": "https://example.com"
+        },
+        "validation": "[Url]"
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "URL",
+          "Variant": "Variant.Outlined",
+          "InputType": "InputType.Url"
+        },
+        "validation": "[Url]"
+      }
+    },
+    "Password": {
+      "syncfusion": {
+        "component": "SfTextBox",
+        "defaultAttributes": {
+          "Type": "InputType.Password",
+          "FloatLabelType": "FloatLabelType.Auto"
+        },
+        "validation": "[DataType(DataType.Password)]"
+      },
+      "telerik": {
+        "component": "TelerikTextBox",
+        "defaultAttributes": {
+          "Password": "true"
+        },
+        "validation": "[DataType(DataType.Password)]"
+      },
+      "mudblazor": {
+        "component": "MudTextField<string>",
+        "defaultAttributes": {
+          "Label": "Password",
+          "Variant": "Variant.Outlined",
+          "InputType": "InputType.Password"
+        },
+        "validation": "[DataType(DataType.Password)]"
+      }
+    }
+  },
+  "enumHandling": {
+    "syncfusion": {
+      "component": "SfDropDownList<TEnum, TEnum>",
+      "defaultAttributes": {
+        "FloatLabelType": "FloatLabelType.Auto"
+      },
+      "dataBinding": "DataSource=\"@Enum.GetValues<{EnumType}>()\""
+    },
+    "telerik": {
+      "component": "TelerikDropDownList<TEnum>",
+      "defaultAttributes": {},
+      "dataBinding": "Data=\"@Enum.GetValues<{EnumType}>()\""
+    },
+    "mudblazor": {
+      "component": "MudSelect<TEnum>",
+      "defaultAttributes": {
+        "Label": "{FieldName}",
+        "Variant": "Variant.Outlined"
+      },
+      "dataBinding": "Items from Enum.GetValues"
+    }
+  },
+  "foreignKeyHandling": {
+    "syncfusion": {
+      "component": "SfComboBox<int, TEntity>",
+      "defaultAttributes": {
+        "AllowFiltering": "true",
+        "FilterType": "FilterType.Contains",
+        "FloatLabelType": "FloatLabelType.Auto",
+        "Placeholder": "Select {EntityName}"
+      },
+      "valueField": "{EntityName}Id",
+      "textField": "Name"
+    },
+    "telerik": {
+      "component": "TelerikComboBox<int, TEntity>",
+      "defaultAttributes": {
+        "Filterable": "true",
+        "Placeholder": "Select {EntityName}"
+      },
+      "valueField": "{EntityName}Id",
+      "textField": "Name"
+    },
+    "mudblazor": {
+      "component": "MudAutocomplete<TEntity>",
+      "defaultAttributes": {
+        "Label": "{FieldName}",
+        "Variant": "Variant.Outlined",
+        "SearchFunc": "@Search{EntityName}",
+        "ToStringFunc": "@(e => e?.Name)",
+        "ResetValueOnEmptyText": "true",
+        "CoerceText": "true"
+      },
+      "requiresSearchFunc": true
+    }
+  },
+  "collectionHandling": {
+    "syncfusion": {
+      "component": "SfMultiSelect<int, TEntity>",
+      "defaultAttributes": {
+        "FloatLabelType": "FloatLabelType.Auto",
+        "Placeholder": "Select multiple"
+      }
+    },
+    "telerik": {
+      "component": "TelerikMultiSelect<int, TEntity>",
+      "defaultAttributes": {
+        "Placeholder": "Select multiple"
+      }
+    },
+    "mudblazor": {
+      "component": "MudSelect<T>",
+      "defaultAttributes": {
+        "Label": "{FieldName}",
+        "Variant": "Variant.Outlined",
+        "MultiSelection": "true"
+      }
+    }
+  },
+  "validationAttributes": {
+    "Required": "[Required(ErrorMessage = \"{FieldName} is required\")]",
+    "StringLength": "[StringLength({MaxLength}, ErrorMessage = \"{FieldName} cannot exceed {MaxLength} characters\")]",
+    "MinLength": "[MinLength({MinLength}, ErrorMessage = \"{FieldName} must be at least {MinLength} characters\")]",
+    "Range": "[Range({Min}, {Max}, ErrorMessage = \"{FieldName} must be between {Min} and {Max}\")]",
+    "EmailAddress": "[EmailAddress(ErrorMessage = \"Invalid email address\")]",
+    "Phone": "[Phone(ErrorMessage = \"Invalid phone number\")]",
+    "Url": "[Url(ErrorMessage = \"Invalid URL\")]",
+    "RegularExpression": "[RegularExpression(\"{Pattern}\", ErrorMessage = \"{ErrorMessage}\")]",
+    "Compare": "[Compare(\"{OtherProperty}\", ErrorMessage = \"The {FieldName} and {OtherProperty} do not match.\")]",
+    "CreditCard": "[CreditCard(ErrorMessage = \"Invalid credit card number\")]"
+  },
+  "gridFormatting": {
+    "currency": {
+      "syncfusion": "Format=\"C2\"",
+      "telerik": "DisplayFormat=\"{0:C2}\"",
+      "mudblazor": "Format=\"C2\""
+    },
+    "number": {
+      "syncfusion": "Format=\"N2\"",
+      "telerik": "DisplayFormat=\"{0:N2}\"",
+      "mudblazor": "Format=\"N2\""
+    },
+    "date": {
+      "syncfusion": "Format=\"yyyy-MM-dd\"",
+      "telerik": "DisplayFormat=\"{0:yyyy-MM-dd}\"",
+      "mudblazor": "Format=\"yyyy-MM-dd\""
+    },
+    "dateTime": {
+      "syncfusion": "Format=\"yyyy-MM-dd HH:mm\"",
+      "telerik": "DisplayFormat=\"{0:yyyy-MM-dd HH:mm}\"",
+      "mudblazor": "Format=\"yyyy-MM-dd HH:mm\""
+    },
+    "percentage": {
+      "syncfusion": "Format=\"P2\"",
+      "telerik": "DisplayFormat=\"{0:P2}\"",
+      "mudblazor": "Format=\"P2\""
+    }
+  },
+  "typeDetectionHints": {
+    "multiline": [
+      "Description",
+      "Notes",
+      "Comments",
+      "Body",
+      "Content",
+      "Text"
+    ],
+    "email": [
+      "Email",
+      "EmailAddress",
+      "ContactEmail",
+      "UserEmail"
+    ],
+    "phone": [
+      "Phone",
+      "PhoneNumber",
+      "Mobile",
+      "ContactNumber"
+    ],
+    "url": [
+      "Url",
+      "Website",
+      "Link",
+      "Homepage"
+    ],
+    "password": [
+      "Password",
+      "PasswordHash",
+      "Pin",
+      "Secret"
+    ]
+  }
+}

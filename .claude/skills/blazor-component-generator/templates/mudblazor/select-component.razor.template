@@ -1,0 +1,148 @@
+@using {ProjectNamespace}.Models
+@using {ProjectNamespace}.Services
+@inject I{ForeignEntityName}Service {ForeignEntityName}Service
+@inject ISnackbar Snackbar
+@inject ILogger<{ForeignEntityName}Select> Logger
+
+<MudAutocomplete T="{ForeignEntityName}"
+                 @bind-Value="@SelectedItem"
+                 SearchFunc="@SearchItems"
+                 Label="@Label"
+                 Variant="Variant.Outlined"
+                 ToStringFunc="@GetDisplayText"
+                 ResetValueOnEmptyText="@ResetOnEmpty"
+                 CoerceText="@CoerceText"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 HelperText="@HelperText"
+                 Disabled="@Disabled"
+                 Clearable="@Clearable"
+                 DebounceInterval="@DebounceInterval"
+                 MinCharacters="@MinCharacters"
+                 MaxItems="@MaxItems"
+                 ShowProgressIndicator="@_isLoading"
+                 ProgressIndicatorColor="Color.Primary"
+                 AdornmentIcon="@AdornmentIcon"
+                 AdornmentColor="Color.Primary">
+    <ProgressIndicatorTemplate>
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-2" />
+    </ProgressIndicatorTemplate>
+    <NoItemsTemplate>
+        <MudText Align="Align.Center" Class="px-4 py-2">
+            @NoItemsMessage
+        </MudText>
+    </NoItemsTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public {ForeignEntityName}? SelectedItem { get; set; }
+    [Parameter] public EventCallback<{ForeignEntityName}?> SelectedItemChanged { get; set; }
+    [Parameter] public int? InitialSelectedId { get; set; }
+
+    // Display Options
+    [Parameter] public string Label { get; set; } = "{ForeignEntityName}";
+    [Parameter] public string HelperText { get; set; } = "Search and select a {ForeignEntityName}";
+    [Parameter] public string NoItemsMessage { get; set; } = "No {ForeignEntityNamePlural} found";
+    [Parameter] public string RequiredError { get; set; } = "{ForeignEntityName} is required";
+    [Parameter] public string AdornmentIcon { get; set; } = Icons.Material.Filled.Search;
+
+    // Behavior Options
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; } = false;
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public bool ResetOnEmpty { get; set; } = true;
+    [Parameter] public bool CoerceText { get; set; } = true;
+    [Parameter] public int DebounceInterval { get; set; } = 300;
+    [Parameter] public int MinCharacters { get; set; } = 0;
+    [Parameter] public int? MaxItems { get; set; } = 20;
+
+    // Data Options
+    [Parameter] public Func<{ForeignEntityName}, string>? CustomDisplayFunc { get; set; }
+    [Parameter] public Func<string, Task<IEnumerable<{ForeignEntityName}>>>? CustomSearchFunc { get; set; }
+
+    private List<{ForeignEntityName}> _allItems = new();
+    private bool _isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllItemsAsync();
+
+        // Set initial selected item if ID provided
+        if (InitialSelectedId.HasValue && SelectedItem == null)
+        {
+            SelectedItem = _allItems.FirstOrDefault(x => x.{ForeignKeyProperty} == InitialSelectedId.Value);
+            if (SelectedItem != null)
+            {
+                await SelectedItemChanged.InvokeAsync(SelectedItem);
+            }
+        }
+    }
+
+    private async Task LoadAllItemsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _allItems = await {ForeignEntityName}Service.GetAllAsync();
+            Logger.LogInformation("Loaded {Count} {ForeignEntityNamePlural}", _allItems.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading {ForeignEntityNamePlural}");
+            Snackbar.Add($"Error loading {ForeignEntityNamePlural}: {ex.Message}", Severity.Error);
+            _allItems = new List<{ForeignEntityName}>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task<IEnumerable<{ForeignEntityName}>> SearchItems(string searchText)
+    {
+        try
+        {
+            // Use custom search function if provided
+            if (CustomSearchFunc != null)
+            {
+                return await CustomSearchFunc(searchText);
+            }
+
+            // Default search logic
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                return _allItems.Take(MaxItems ?? 20);
+            }
+
+            var searchLower = searchText.ToLower();
+            var results = _allItems.Where(x =>
+                GetDisplayText(x).Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                // Add additional search fields here
+                // || x.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true
+            );
+
+            return MaxItems.HasValue
+                ? results.Take(MaxItems.Value)
+                : results;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching {ForeignEntityNamePlural}");
+            Snackbar.Add($"Search error: {ex.Message}", Severity.Warning);
+            return Array.Empty<{ForeignEntityName}>();
+        }
+    }
+
+    private string GetDisplayText({ForeignEntityName}? item)
+    {
+        if (item == null)
+            return string.Empty;
+
+        // Use custom display function if provided
+        if (CustomDisplayFunc != null)
+            return CustomDisplayFunc(item);
+
+        // Default display logic - customize based on your entity properties
+        return item.{DisplayProperty} ?? $"{ForeignEntityName} #{item.{ForeignKeyProperty}}";
+    }
+}

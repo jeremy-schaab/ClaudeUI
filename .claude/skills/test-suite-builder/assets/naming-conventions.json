@@ -1,0 +1,60 @@
+{
+  "testClass": "{ClassName}Tests",
+  "testMethod": "{MethodName}_{Scenario}_{ExpectedResult}",
+  "mockField": "_mock{InterfaceName}",
+  "systemUnderTest": "_sut",
+  "testDataBuilder": "{EntityName}TestDataBuilder",
+  "testFixture": "{ClassName}TestFixture",
+  "testContext": "_testContext",
+  "categories": {
+    "unit": "[Fact]",
+    "integration": "[Fact]",
+    "theory": "[Theory]",
+    "inlineData": "[InlineData({data})]",
+    "memberData": "[MemberData(nameof({memberName}))]",
+    "classData": "[ClassData(typeof({className}))]"
+  },
+  "namespaces": {
+    "xunit": "using Xunit;",
+    "moq": "using Moq;",
+    "fluentAssertions": "using FluentAssertions;",
+    "logging": "using Microsoft.Extensions.Logging;",
+    "masstransit": "using MassTransit.Testing;",
+    "entityFramework": "using Microsoft.EntityFrameworkCore;",
+    "bunit": "using Bunit;",
+    "telerik": "using Telerik.Blazor.Components;"
+  },
+  "fileNaming": {
+    "test": "{ClassName}Tests.cs",
+    "fixture": "{ClassName}Fixture.cs",
+    "testDataBuilder": "{EntityName}TestDataBuilder.cs",
+    "testBase": "{ModuleName}TestBase.cs"
+  },
+  "conventions": {
+    "privateFields": {
+      "prefix": "_",
+      "casing": "camelCase",
+      "readonly": true
+    },
+    "testMethods": {
+      "accessibility": "public",
+      "async": "async Task",
+      "returnType": "void or Task"
+    },
+    "setupMethod": {
+      "name": "Setup",
+      "attribute": "[SetUp]"
+    },
+    "teardownMethod": {
+      "name": "Cleanup",
+      "attribute": "[TearDown]"
+    }
+  },
+  "comments": {
+    "testClass": "Tests for {ClassName}",
+    "testMethod": "Test: {MethodName} - {Scenario}",
+    "arrange": "// Arrange",
+    "act": "// Act",
+    "assert": "// Assert"
+  }
+}

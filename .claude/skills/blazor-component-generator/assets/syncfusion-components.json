@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Syncfusion Blazor Components Configuration",
+  "description": "Component mappings and configurations for Syncfusion Blazor",
+  "framework": {
+    "name": "Syncfusion Blazor",
+    "id": "syncfusion",
+    "version": "27.x",
+    "namespace": "Syncfusion.Blazor"
+  },
+  "components": {
+    "grid": {
+      "name": "SfGrid",
+      "namespace": "Syncfusion.Blazor.Grids",
+      "package": "Syncfusion.Blazor.Grid",
+      "typeParameter": "TValue",
+      "properties": {
+        "dataSource": "DataSource",
+        "allowPaging": "AllowPaging",
+        "allowSorting": "AllowSorting",
+        "allowFiltering": "AllowFiltering",
+        "toolbar": "Toolbar"
+      },
+      "childComponents": {
+        "columns": "GridColumns",
+        "column": "GridColumn",
+        "editSettings": "GridEditSettings",
+        "events": "GridEvents"
+      }
+    },
+    "dialog": {
+      "name": "SfDialog",
+      "namespace": "Syncfusion.Blazor.Popups",
+      "package": "Syncfusion.Blazor.Popups",
+      "properties": {
+        "visible": "@bind-Visible",
+        "width": "Width",
+        "isModal": "IsModal",
+        "showCloseIcon": "ShowCloseIcon"
+      },
+      "childComponents": {
+        "header": "DialogTemplates > Header",
+        "content": "DialogTemplates > Content"
+      }
+    },
+    "textBox": {
+      "name": "SfTextBox",
+      "namespace": "Syncfusion.Blazor.Inputs",
+      "package": "Syncfusion.Blazor.Inputs",
+      "properties": {
+        "value": "@bind-Value",
+        "placeholder": "Placeholder",
+        "floatLabelType": "FloatLabelType",
+        "enabled": "Enabled",
+        "readonly": "ReadOnly",
+        "maxLength": "MaxLength"
+      }
+    },
+    "numericTextBox": {
+      "name": "SfNumericTextBox",
+      "namespace": "Syncfusion.Blazor.Inputs",
+      "package": "Syncfusion.Blazor.Inputs",
+      "typeParameter": "TValue",
+      "properties": {
+        "value": "@bind-Value",
+        "format": "Format",
+        "min": "Min",
+        "max": "Max",
+        "step": "Step",
+        "decimals": "Decimals",
+        "floatLabelType": "FloatLabelType"
+      }
+    },
+    "datePicker": {
+      "name": "SfDatePicker",
+      "namespace": "Syncfusion.Blazor.Calendars",
+      "package": "Syncfusion.Blazor.Calendars",
+      "typeParameter": "TValue",
+      "properties": {
+        "value": "@bind-Value",
+        "format": "Format",
+        "min": "Min",
+        "max": "Max",
+        "showClearButton": "ShowClearButton",
+        "floatLabelType": "FloatLabelType"
+      }
+    },
+    "comboBox": {
+      "name": "SfComboBox",
+      "namespace": "Syncfusion.Blazor.DropDowns",
+      "package": "Syncfusion.Blazor.DropDowns",
+      "typeParameters": ["TValue", "TItem"],
+      "properties": {
+        "value": "@bind-Value",
+        "dataSource": "DataSource",
+        "placeholder": "Placeholder",
+        "allowFiltering": "AllowFiltering",
+        "floatLabelType": "FloatLabelType"
+      },
+      "childComponents": {
+        "fieldSettings": "ComboBoxFieldSettings"
+      }
+    },
+    "dropDownList": {
+      "name": "SfDropDownList",
+      "namespace": "Syncfusion.Blazor.DropDowns",
+      "package": "Syncfusion.Blazor.DropDowns",
+      "typeParameters": ["TValue", "TItem"],
+      "properties": {
+        "value": "@bind-Value",
+        "dataSource": "DataSource",
+        "placeholder": "Placeholder",
+        "floatLabelType": "FloatLabelType"
+      },
+      "childComponents": {
+        "fieldSettings": "DropDownListFieldSettings"
+      }
+    },
+    "checkBox": {
+      "name": "SfCheckBox",
+      "namespace": "Syncfusion.Blazor.Buttons",
+      "package": "Syncfusion.Blazor.Buttons",
+      "properties": {
+        "checked": "@bind-Checked",
+        "label": "Label"
+      }
+    },
+    "switch": {
+      "name": "SfSwitch",
+      "namespace": "Syncfusion.Blazor.Buttons",
+      "package": "Syncfusion.Blazor.Buttons",
+      "properties": {
+        "checked": "@bind-Checked"
+      }
+    }
+  },
+  "typeMapping": {
+    "string": {
+      "component": "SfTextBox",
+      "defaultConfig": {
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "string_multiline": {
+      "component": "SfTextBox",
+      "defaultConfig": {
+        "Multiline": "true",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "int": {
+      "component": "SfNumericTextBox<int>",
+      "defaultConfig": {
+        "Format": "N0",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "decimal": {
+      "component": "SfNumericTextBox<decimal>",
+      "defaultConfig": {
+        "Format": "C2",
+        "Min": "0",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "double": {
+      "component": "SfNumericTextBox<double>",
+      "defaultConfig": {
+        "Format": "N2",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "DateTime": {
+      "component": "SfDatePicker<DateTime>",
+      "defaultConfig": {
+        "Format": "yyyy-MM-dd",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "DateTimeOffset": {
+      "component": "SfDatePicker<DateTimeOffset>",
+      "defaultConfig": {
+        "Format": "yyyy-MM-dd",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "bool": {
+      "component": "SfCheckBox",
+      "defaultConfig": {}
+    },
+    "enum": {
+      "component": "SfDropDownList",
+      "defaultConfig": {
+        "DataSource": "Enum.GetValues(typeof({EnumType}))",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    },
+    "foreignKey": {
+      "component": "SfComboBox",
+      "defaultConfig": {
+        "AllowFiltering": "true",
+        "FilterType": "FilterType.Contains",
+        "FloatLabelType": "FloatLabelType.Auto"
+      }
+    }
+  },
+  "gridConfiguration": {
+    "defaultPageSize": 10,
+    "defaultEditMode": "Dialog",
+    "toolbar": ["Add", "Edit", "Delete", "Update", "Cancel"],
+    "columnDefaults": {
+      "primaryKey": {
+        "Width": "100",
+        "IsPrimaryKey": "true"
+      },
+      "string": {
+        "Width": "200"
+      },
+      "number": {
+        "Width": "120",
+        "TextAlign": "TextAlign.Right"
+      },
+      "date": {
+        "Width": "150",
+        "Format": "yyyy-MM-dd"
+      },
+      "boolean": {
+        "Width": "100",
+        "DisplayAsCheckBox": "true"
+      }
+    }
+  },
+  "formConfiguration": {
+    "defaultFloatLabelType": "FloatLabelType.Auto",
+    "validationDisplay": "ValidationSummary",
+    "layout": {
+      "columnsPerRow": 2,
+      "fieldSpacing": "20px"
+    }
+  },
+  "styling": {
+    "themes": [
+      "material",
+      "material-dark",
+      "fabric",
+      "fabric-dark",
+      "bootstrap4",
+      "bootstrap5",
+      "bootstrap5-dark",
+      "tailwind",
+      "tailwind-dark",
+      "fluent",
+      "fluent-dark"
+    ],
+    "defaultTheme": "bootstrap5",
+    "themeBasePath": "_content/Syncfusion.Blazor.Themes"
+  },
+  "eventHandlers": {
+    "grid": {
+      "onActionBegin": "OnActionBegin",
+      "onActionComplete": "OnActionComplete",
+      "onActionFailure": "OnActionFailure"
+    },
+    "dialog": {
+      "onOpen": "OnOpen",
+      "onClose": "OnClose"
+    },
+    "form": {
+      "onValidSubmit": "OnValidSubmit",
+      "onInvalidSubmit": "OnInvalidSubmit"
+    }
+  },
+  "bestPractices": {
+    "floatLabel": "Always use FloatLabelType.Auto for consistent UX",
+    "filtering": "Enable AllowFiltering on ComboBox for better UX",
+    "validation": "Use DataAnnotationsValidator with ValidationSummary",
+    "async": "Always use async Task methods for data operations",
+    "events": "Use GridEvents with TValue parameter for type safety"
+  }
+}

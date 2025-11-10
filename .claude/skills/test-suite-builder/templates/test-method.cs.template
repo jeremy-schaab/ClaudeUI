@@ -1,0 +1,12 @@
+    [Fact]
+    public async Task {{METHOD_NAME}}_{{SCENARIO}}_{{EXPECTED_RESULT}}()
+    {
+        // Arrange
+{{ARRANGE_CODE}}
+
+        // Act
+{{ACT_CODE}}
+
+        // Assert
+{{ASSERT_CODE}}
+    }

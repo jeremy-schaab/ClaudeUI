@@ -1,0 +1,137 @@
+@page "/{{ROUTE}}"
+@using {{NAMESPACE}}.Models.ViewModels
+@using {{NAMESPACE}}.Services
+@inject I{{ENTITY_NAME}}Service {{ENTITY_NAME}}Service
+@inject ILogger<{{PAGE_NAME}}> Logger
+
+<PageTitle>{{PAGE_TITLE}}</PageTitle>
+
+<h3>{{PAGE_TITLE}}</h3>
+
+<TelerikGrid Data="@GridData"
+             OnRead="@OnReadHandler"
+             Pageable="true"
+             Sortable="true"
+             FilterMode="@GridFilterMode.FilterRow"
+             Resizable="true"
+             Reorderable="true"
+             PageSize="20">
+    <GridToolBarTemplate>
+        <GridCommandButton Command="Add" Icon="@SvgIcon.Plus" OnClick="@ShowCreateDialog">
+            Add {{ENTITY_NAME}}
+        </GridCommandButton>
+    </GridToolBarTemplate>
+    <GridColumns>
+{{GRID_COLUMNS}}
+        <GridCommandColumn Width="180px">
+            <GridCommandButton Command="Edit" Icon="@SvgIcon.Pencil" OnClick="@(() => ShowEditDialog(context))">
+                Edit
+            </GridCommandButton>
+            <GridCommandButton Command="Delete" Icon="@SvgIcon.Trash" OnClick="@(() => ShowDeleteDialog(context))">
+                Delete
+            </GridCommandButton>
+        </GridCommandColumn>
+    </GridColumns>
+</TelerikGrid>
+
+{{DIALOG_COMPONENTS}}
+
+@code {
+    private List<{{ENTITY_NAME}}Model> GridData = new();
+    private bool ShowDialog = false;
+    private bool ShowDeleteConfirmation = false;
+    private {{ENTITY_NAME}}Model CurrentItem = new();
+    private {{ENTITY_NAME}}Model? ItemToDelete = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+{{LOAD_DATA_IMPLEMENTATION}}
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading {{ENTITY_NAME_LOWER}}s");
+        }
+    }
+
+    private async Task OnReadHandler(GridReadEventArgs args)
+    {
+        await LoadDataAsync();
+    }
+
+    private void ShowCreateDialog()
+    {
+        CurrentItem = new {{ENTITY_NAME}}Model();
+        ShowDialog = true;
+    }
+
+    private void ShowEditDialog({{ENTITY_NAME}}Model item)
+    {
+        CurrentItem = item;
+        ShowDialog = true;
+    }
+
+    private void ShowDeleteDialog({{ENTITY_NAME}}Model item)
+    {
+        ItemToDelete = item;
+        ShowDeleteConfirmation = true;
+    }
+
+    private async Task OnSaveAsync()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(CurrentItem.{{ID_FIELD}}))
+            {
+                await {{ENTITY_NAME}}Service.Create{{ENTITY_NAME}}Async(CurrentItem);
+            }
+            else
+            {
+                await {{ENTITY_NAME}}Service.Update{{ENTITY_NAME}}Async(CurrentItem);
+            }
+
+            ShowDialog = false;
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving {{ENTITY_NAME_LOWER}}");
+        }
+    }
+
+    private async Task OnDeleteAsync()
+    {
+        try
+        {
+            if (ItemToDelete != null)
+            {
+                await {{ENTITY_NAME}}Service.Delete{{ENTITY_NAME}}Async(ItemToDelete.{{ID_FIELD}});
+                ShowDeleteConfirmation = false;
+                ItemToDelete = null;
+                await LoadDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting {{ENTITY_NAME_LOWER}}");
+        }
+    }
+
+    private void OnCancelDialog()
+    {
+        ShowDialog = false;
+        CurrentItem = new();
+    }
+
+    private void OnCancelDelete()
+    {
+        ShowDeleteConfirmation = false;
+        ItemToDelete = null;
+    }
+}

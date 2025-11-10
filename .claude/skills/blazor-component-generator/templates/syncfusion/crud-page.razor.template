@@ -1,0 +1,157 @@
+@page "/{EntityNameLower}s"
+@using Microsoft.AspNetCore.Components
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Popups
+@using System.ComponentModel.DataAnnotations
+@inject I{EntityName}Service {EntityName}Service
+@inject ILogger<{EntityName}List> Logger
+
+<PageTitle>{EntityNamePlural}</PageTitle>
+
+<h3>{EntityNamePlural}</h3>
+
+@if (IsLoading)
+{
+    <SfSpinner Visible="true" Label="Loading {EntityNameLower}s..." />
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @ErrorMessage
+    </div>
+}
+else
+{
+    <SfGrid @ref="Grid"
+            DataSource="@{EntityNamePlural}"
+            AllowPaging="true"
+            AllowSorting="true"
+            AllowFiltering="true"
+            Toolbar="@(new List<string>() { \"Add\", \"Edit\", \"Delete\", \"Update\", \"Cancel\" })">
+        <GridEditSettings AllowAdding="true" AllowEditing="true" AllowDeleting="true" Mode="EditMode.Dialog" />
+        <GridEvents OnActionBegin="OnActionBeginHandler" TValue="{EntityName}" />
+        <GridPageSettings PageSize="10" />
+        <GridColumns>
+            <!-- PRIMARY_KEY_COLUMNS -->
+            <!-- ENTITY_PROPERTIES -->
+        </GridColumns>
+    </SfGrid>
+}
+
+<!-- Confirmation Dialog -->
+<SfDialog @bind-Visible="@ShowDeleteConfirmation"
+          Width="400px"
+          IsModal="true"
+          ShowCloseIcon="true">
+    <DialogTemplates>
+        <Header>Confirm Delete</Header>
+        <Content>
+            <p>Are you sure you want to delete this {EntityNameLower}?</p>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Delete" OnClick="@ConfirmDelete" IsPrimary="true" />
+        <DialogButton Content="Cancel" OnClick="@CancelDelete" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    private SfGrid<{EntityName}> Grid;
+    private List<{EntityName}> {EntityNamePlural} = new();
+    private bool IsLoading = false;
+    private string ErrorMessage = "";
+    private bool ShowDeleteConfirmation = false;
+    private {EntityName} {EntityName}ToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            Logger.LogInformation("Loading {EntityNameLower}s...");
+            {EntityNamePlural} = await {EntityName}Service.GetAllAsync();
+            Logger.LogInformation("Loaded {Count} {EntityNameLower}s", {EntityNamePlural}.Count);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Failed to load {EntityNameLower}s. Please try again.";
+            Logger.LogError(ex, "Error loading {EntityNameLower}s");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnActionBeginHandler(ActionEventArgs<{EntityName}> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save)
+            {
+                if (args.Action == "Add")
+                {
+                    Logger.LogInformation("Creating new {EntityNameLower}");
+                    await {EntityName}Service.CreateAsync(args.Data);
+                    Logger.LogInformation("{EntityName} created successfully: {{Id}}", args.Data.{PrimaryKey});
+                }
+                else
+                {
+                    Logger.LogInformation("Updating {EntityNameLower}: {{Id}}", args.Data.{PrimaryKey});
+                    await {EntityName}Service.UpdateAsync(args.Data);
+                    Logger.LogInformation("{EntityName} updated successfully");
+                }
+                await LoadDataAsync();
+            }
+            else if (args.RequestType == Syncfusion.Blazor.Grids.Action.Delete)
+            {
+                {EntityName}ToDelete = args.Data;
+                ShowDeleteConfirmation = true;
+                args.Cancel = true; // Cancel default delete, show confirmation first
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+            Logger.LogError(ex, "Error in {Action} operation", args.RequestType);
+            args.Cancel = true;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        ShowDeleteConfirmation = false;
+        if ({EntityName}ToDelete != null)
+        {
+            try
+            {
+                Logger.LogInformation("Deleting {EntityNameLower}: {{Id}}", {EntityName}ToDelete.{PrimaryKey});
+                await {EntityName}Service.DeleteAsync({EntityName}ToDelete.{PrimaryKey});
+                await LoadDataAsync();
+                Logger.LogInformation("{EntityName} deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Failed to delete {EntityNameLower}: {ex.Message}";
+                Logger.LogError(ex, "Error deleting {EntityNameLower}");
+            }
+            finally
+            {
+                {EntityName}ToDelete = null;
+            }
+        }
+    }
+
+    private void CancelDelete()
+    {
+        ShowDeleteConfirmation = false;
+        {EntityName}ToDelete = null;
+    }
+}

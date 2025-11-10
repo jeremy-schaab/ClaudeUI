@@ -1,0 +1,205 @@
+@using {ProjectNamespace}.Models
+@using {ProjectNamespace}.Services
+@using System.ComponentModel.DataAnnotations
+@inject ISnackbar Snackbar
+@inject ILogger<{EntityName}Form> Logger
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">@(IsNew ? $"Create {EntityName}" : $"Edit {EntityName}")</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudOverlay Visible="@IsSaving" DarkBackground="true" Absolute="true">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </MudOverlay>
+
+        <EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <MudGrid Spacing="3">
+                <!-- Text Field Example -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="@Model.Name"
+                                 Label="Name"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="Name is required"
+                                 MaxLength="100"
+                                 HelperText="Enter the {EntityName} name" />
+                </MudItem>
+
+                <!-- Numeric Field Example -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="@Model.Price"
+                                    Label="Price"
+                                    Variant="Variant.Outlined"
+                                    Format="C2"
+                                    Min="0"
+                                    Max="999999"
+                                    HelperText="Enter the price amount" />
+                </MudItem>
+
+                <!-- Date Picker Example -->
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="@Model.CreatedDate"
+                                  Label="Created Date"
+                                  Variant="Variant.Outlined"
+                                  DateFormat="yyyy-MM-dd"
+                                  MaxDate="@DateTime.Today"
+                                  HelperText="Select the creation date" />
+                </MudItem>
+
+                <!-- Checkbox Example -->
+                <MudItem xs="12" md="6">
+                    <MudCheckBox @bind-Checked="@Model.IsActive"
+                                Label="Active"
+                                Color="Color.Primary">
+                        Is {EntityName} Active?
+                    </MudCheckBox>
+                </MudItem>
+
+                <!-- Multi-line Text Field Example -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="@Model.Description"
+                                 Label="Description"
+                                 Variant="Variant.Outlined"
+                                 Lines="5"
+                                 MaxLength="1000"
+                                 HelperText="Enter a detailed description" />
+                </MudItem>
+
+                <!-- Autocomplete for Foreign Key Example -->
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="{ForeignEntityName}"
+                                    @bind-Value="@_selectedCategory"
+                                    SearchFunc="@SearchCategories"
+                                    Label="Category"
+                                    Variant="Variant.Outlined"
+                                    ToStringFunc="@(e => e?.Name)"
+                                    ResetValueOnEmptyText="true"
+                                    CoerceText="true"
+                                    Required="true"
+                                    RequiredError="Category is required"
+                                    HelperText="Search and select a category" />
+                </MudItem>
+
+                <!-- {ADDITIONAL_FORM_FIELDS} -->
+
+                <MudItem xs="12">
+                    <ValidationSummary />
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton OnClick="Cancel" Disabled="@IsSaving">Cancel</MudButton>
+        <MudSpacer />
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="@HandleValidSubmit"
+                   Disabled="@IsSaving">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>@(IsNew ? "Create" : "Save")</span>
+            }
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter] public {EntityName} Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; } = true;
+    [Parameter] public bool IsSaving { get; set; } = false;
+    [Parameter] public EventCallback<{EntityName}> OnValidSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    // Foreign key example - replace with actual foreign entities
+    private {ForeignEntityName}? _selectedCategory;
+    private List<{ForeignEntityName}> _categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupDataAsync();
+    }
+
+    private async Task LoadLookupDataAsync()
+    {
+        try
+        {
+            // Load foreign key lookup data
+            // _categories = await CategoryService.GetAllAsync();
+
+            // If editing existing item, set selected foreign entity
+            if (!IsNew && Model.CategoryId.HasValue)
+            {
+                // _selectedCategory = _categories.FirstOrDefault(c => c.Id == Model.CategoryId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lookup data");
+            Snackbar.Add($"Error loading lookup data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<{ForeignEntityName}>> SearchCategories(string value)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(value))
+                return _categories;
+
+            return _categories.Where(c =>
+                c.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching categories");
+            return Array.Empty<{ForeignEntityName}>();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            // Map foreign key selections back to model
+            if (_selectedCategory != null)
+            {
+                Model.CategoryId = _selectedCategory.Id;
+            }
+
+            // Validate model
+            var validationContext = new ValidationContext(Model);
+            var validationResults = new List<ValidationResult>();
+
+            if (!Validator.TryValidateObject(Model, validationContext, validationResults, true))
+            {
+                foreach (var validationResult in validationResults)
+                {
+                    Snackbar.Add(validationResult.ErrorMessage ?? "Validation error", Severity.Error);
+                }
+                return;
+            }
+
+            await OnValidSubmit.InvokeAsync(Model);
+            Logger.LogInformation("{Action} {EntityName}", IsNew ? "Created" : "Updated");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in form submission");
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

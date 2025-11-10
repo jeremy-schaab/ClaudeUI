@@ -1,0 +1,311 @@
+@using Microsoft.AspNetCore.Components
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Data
+@typeparam TValue
+@typeparam TItem
+@inject ILogger<{EntityName}Lookup<TValue, TItem>> Logger
+
+<div class="{EntityNameLower}-lookup">
+    @if (IsLoading)
+    {
+        <div class="lookup-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-2">Loading options...</span>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger alert-sm" role="alert">
+            @ErrorMessage
+        </div>
+    }
+    else
+    {
+        <SfComboBox @bind-Value="@CurrentValue"
+                    DataSource="@DataSource"
+                    TValue="TValue"
+                    TItem="TItem"
+                    Placeholder="@Placeholder"
+                    AllowFiltering="@AllowFiltering"
+                    AllowCustom="@AllowCustom"
+                    FilterType="@FilterType"
+                    FloatLabelType="@FloatLabelType"
+                    Enabled="@Enabled"
+                    ReadOnly="@ReadOnly"
+                    CssClass="@CssClass"
+                    ShowClearButton="@ShowClearButton"
+                    PopupHeight="@PopupHeight"
+                    PopupWidth="@PopupWidth"
+                    SortOrder="@SortOrder">
+            <ComboBoxFieldSettings Value="@ValueField" Text="@TextField" />
+            <ComboBoxEvents TValue="TValue"
+                           TItem="TItem"
+                           ValueChange="@OnValueChanged"
+                           Filtering="@OnFiltering"
+                           OnOpen="@OnDropdownOpen"
+                           OnClose="@OnDropdownClose" />
+        </SfComboBox>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public TValue? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<TValue?> ValueChanged { get; set; }
+
+    [Parameter]
+    public List<TItem>? DataSource { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnDataLoad { get; set; }
+
+    [Parameter]
+    public string ValueField { get; set; } = "Id";
+
+    [Parameter]
+    public string TextField { get; set; } = "Name";
+
+    [Parameter]
+    public string Placeholder { get; set; } = "Select an option...";
+
+    [Parameter]
+    public bool AllowFiltering { get; set; } = true;
+
+    [Parameter]
+    public bool AllowCustom { get; set; } = false;
+
+    [Parameter]
+    public FilterType FilterType { get; set; } = FilterType.Contains;
+
+    [Parameter]
+    public FloatLabelType FloatLabelType { get; set; } = FloatLabelType.Auto;
+
+    [Parameter]
+    public bool Enabled { get; set; } = true;
+
+    [Parameter]
+    public bool ReadOnly { get; set; } = false;
+
+    [Parameter]
+    public bool ShowClearButton { get; set; } = true;
+
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public string PopupHeight { get; set; } = "300px";
+
+    [Parameter]
+    public string PopupWidth { get; set; } = "auto";
+
+    [Parameter]
+    public SortOrder SortOrder { get; set; } = SortOrder.None;
+
+    [Parameter]
+    public bool AutoLoad { get; set; } = true;
+
+    [Parameter]
+    public int MinFilterLength { get; set; } = 1;
+
+    [Parameter]
+    public Func<string, Task<List<TItem>>>? RemoteDataFunc { get; set; }
+
+    private TValue? CurrentValue
+    {
+        get => Value;
+        set
+        {
+            if (!EqualityComparer<TValue>.Default.Equals(Value, value))
+            {
+                Value = value;
+                ValueChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    private bool IsLoading = false;
+    private string ErrorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AutoLoad && DataSource == null)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (DataSource != null && DataSource.Count > 0)
+        {
+            Logger.LogInformation("{EntityName}Lookup loaded with {Count} items", DataSource.Count);
+        }
+    }
+
+    /// <summary>
+    /// Loads data from remote source or service
+    /// </summary>
+    private async Task LoadDataAsync(string? filterText = null)
+    {
+        if (RemoteDataFunc == null && DataSource != null)
+        {
+            // Data already provided via parameter
+            return;
+        }
+
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            Logger.LogInformation("Loading data for {EntityName}Lookup with filter: {Filter}", filterText ?? "(none)");
+
+            if (RemoteDataFunc != null)
+            {
+                DataSource = await RemoteDataFunc(filterText ?? string.Empty);
+                Logger.LogInformation("Loaded {Count} items for {EntityName}Lookup", DataSource?.Count ?? 0);
+            }
+            else
+            {
+                await OnDataLoad.InvokeAsync(filterText ?? string.Empty);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Failed to load options. Please try again.";
+            Logger.LogError(ex, "Error loading data for {EntityName}Lookup");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles value change event
+    /// </summary>
+    private async Task OnValueChanged(ChangeEventArgs<TValue, TItem> args)
+    {
+        Logger.LogInformation("{EntityName}Lookup value changed to: {Value}", args.Value);
+        await ValueChanged.InvokeAsync(args.Value);
+    }
+
+    /// <summary>
+    /// Handles filtering event for remote data
+    /// </summary>
+    private async Task OnFiltering(FilteringEventArgs args)
+    {
+        if (RemoteDataFunc != null && args.Text.Length >= MinFilterLength)
+        {
+            Logger.LogInformation("{EntityName}Lookup filtering with text: {Text}", args.Text);
+            args.PreventDefaultAction = true;
+            await LoadDataAsync(args.Text);
+        }
+    }
+
+    /// <summary>
+    /// Handles dropdown open event
+    /// </summary>
+    private void OnDropdownOpen(PopupEventArgs args)
+    {
+        Logger.LogInformation("{EntityName}Lookup dropdown opened");
+    }
+
+    /// <summary>
+    /// Handles dropdown close event
+    /// </summary>
+    private void OnDropdownClose(PopupEventArgs args)
+    {
+        Logger.LogInformation("{EntityName}Lookup dropdown closed");
+    }
+
+    /// <summary>
+    /// Refreshes the data source
+    /// </summary>
+    public async Task RefreshAsync()
+    {
+        Logger.LogInformation("Refreshing {EntityName}Lookup data");
+        await LoadDataAsync();
+    }
+
+    /// <summary>
+    /// Clears the selected value
+    /// </summary>
+    public async Task ClearAsync()
+    {
+        Logger.LogInformation("Clearing {EntityName}Lookup selection");
+        CurrentValue = default;
+        await ValueChanged.InvokeAsync(default);
+    }
+
+    /// <summary>
+    /// Sets the selected value programmatically
+    /// </summary>
+    public async Task SetValueAsync(TValue value)
+    {
+        Logger.LogInformation("Setting {EntityName}Lookup value to: {Value}", value);
+        CurrentValue = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Gets the selected item from the data source
+    /// </summary>
+    public TItem? GetSelectedItem()
+    {
+        if (DataSource == null || CurrentValue == null) return default;
+
+        var valueProperty = typeof(TItem).GetProperty(ValueField);
+        if (valueProperty == null) return default;
+
+        return DataSource.FirstOrDefault(item =>
+        {
+            var itemValue = valueProperty.GetValue(item);
+            return EqualityComparer<TValue>.Default.Equals((TValue?)itemValue, CurrentValue);
+        });
+    }
+
+    /// <summary>
+    /// Checks if the lookup has a selected value
+    /// </summary>
+    public bool HasValue()
+    {
+        return CurrentValue != null && !EqualityComparer<TValue>.Default.Equals(CurrentValue, default);
+    }
+}
+
+@code {
+    /// <summary>
+    /// Example usage in parent component:
+    ///
+    /// For foreign key selection:
+    /// <{EntityName}Lookup TValue="int"
+    ///                     TItem="Category"
+    ///                     @bind-Value="@Model.CategoryId"
+    ///                     DataSource="@Categories"
+    ///                     ValueField="CategoryId"
+    ///                     TextField="Name"
+    ///                     Placeholder="Select a category..."
+    ///                     AllowFiltering="true" />
+    ///
+    /// With remote data loading:
+    /// <{EntityName}Lookup TValue="int"
+    ///                     TItem="Category"
+    ///                     @bind-Value="@Model.CategoryId"
+    ///                     RemoteDataFunc="@LoadCategoriesAsync"
+    ///                     ValueField="CategoryId"
+    ///                     TextField="Name"
+    ///                     MinFilterLength="2" />
+    ///
+    /// @code {
+    ///     private async Task<List<Category>> LoadCategoriesAsync(string filterText)
+    ///     {
+    ///         return await CategoryService.SearchAsync(filterText);
+    ///     }
+    /// }
+    /// </summary>
+}

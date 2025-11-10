@@ -1,0 +1,339 @@
+{
+  "version": "1.0.0",
+  "description": "Review criteria and scoring rules for Claude Code skills",
+  "scoring": {
+    "perfect_score": 100,
+    "pass_threshold": 70,
+    "severity_weights": {
+      "critical": -20,
+      "major": -5,
+      "minor": -1
+    }
+  },
+  "validation_phases": {
+    "structure": {
+      "enabled": true,
+      "severity": "critical",
+      "checks": [
+        {
+          "id": "STRUCT-001",
+          "name": "SKILL.md exists",
+          "required": true,
+          "severity": "critical"
+        },
+        {
+          "id": "STRUCT-002",
+          "name": "SKILL.md has YAML frontmatter",
+          "required": true,
+          "severity": "critical"
+        },
+        {
+          "id": "STRUCT-003",
+          "name": "Directory name matches skill name",
+          "required": true,
+          "severity": "major"
+        },
+        {
+          "id": "STRUCT-004",
+          "name": "All referenced files exist",
+          "required": true,
+          "severity": "major"
+        },
+        {
+          "id": "STRUCT-005",
+          "name": "Scripts have execute permissions",
+          "required": false,
+          "severity": "minor"
+        },
+        {
+          "id": "STRUCT-006",
+          "name": "README.md exists for complex skills",
+          "required": false,
+          "severity": "minor"
+        }
+      ]
+    },
+    "yaml": {
+      "enabled": true,
+      "severity": "critical",
+      "checks": [
+        {
+          "id": "YAML-001",
+          "name": "Valid YAML syntax",
+          "required": true,
+          "severity": "critical"
+        },
+        {
+          "id": "YAML-002",
+          "name": "Required field: name",
+          "required": true,
+          "severity": "critical"
+        },
+        {
+          "id": "YAML-003",
+          "name": "Required field: description",
+          "required": true,
+          "severity": "critical"
+        },
+        {
+          "id": "YAML-004",
+          "name": "Name matches directory name",
+          "required": true,
+          "severity": "major"
+        },
+        {
+          "id": "YAML-005",
+          "name": "Description follows activation pattern",
+          "required": true,
+          "severity": "major",
+          "pattern": "This skill should be used when"
+        },
+        {
+          "id": "YAML-006",
+          "name": "Description has activation keywords",
+          "required": true,
+          "severity": "minor",
+          "pattern": "Activates for"
+        },
+        {
+          "id": "YAML-007",
+          "name": "Name format: lowercase, numbers, hyphens only",
+          "required": true,
+          "severity": "critical",
+          "pattern": "^[a-z0-9-]+$",
+          "anthropic_standard": true
+        },
+        {
+          "id": "YAML-008",
+          "name": "Name length max 64 characters",
+          "required": true,
+          "severity": "major",
+          "max_length": 64,
+          "anthropic_standard": true
+        },
+        {
+          "id": "YAML-009",
+          "name": "Description length max 1024 characters",
+          "required": true,
+          "severity": "major",
+          "max_length": 1024,
+          "anthropic_standard": true
+        },
+        {
+          "id": "YAML-010",
+          "name": "Description includes WHAT and WHEN",
+          "required": true,
+          "severity": "major",
+          "note": "Description must explain both functionality and use cases",
+          "anthropic_standard": true
+        },
+        {
+          "id": "YAML-011",
+          "name": "YAML uses spaces not tabs",
+          "required": true,
+          "severity": "critical",
+          "anthropic_standard": true
+        },
+        {
+          "id": "YAML-012",
+          "name": "Opening --- on line 1",
+          "required": true,
+          "severity": "critical",
+          "anthropic_standard": true
+        }
+      ]
+    },
+    "content": {
+      "enabled": true,
+      "severity": "major",
+      "required_sections": [
+        {
+          "id": "CONTENT-001",
+          "name": "Purpose section",
+          "pattern": "## Purpose",
+          "severity": "critical"
+        },
+        {
+          "id": "CONTENT-002",
+          "name": "When to Use section",
+          "pattern": "## When to Use",
+          "severity": "major"
+        },
+        {
+          "id": "CONTENT-003",
+          "name": "Step-by-Step Implementation",
+          "pattern": "## Step-by-Step|## Implementation|## Workflow",
+          "severity": "major"
+        },
+        {
+          "id": "CONTENT-004",
+          "name": "Examples section",
+          "pattern": "## Examples",
+          "severity": "major"
+        },
+        {
+          "id": "CONTENT-005",
+          "name": "Success Criteria section",
+          "pattern": "## Success Criteria",
+          "severity": "major"
+        },
+        {
+          "id": "CONTENT-006",
+          "name": "Best Practices section",
+          "pattern": "## Best Practices",
+          "severity": "minor"
+        },
+        {
+          "id": "CONTENT-007",
+          "name": "Troubleshooting section",
+          "pattern": "## Troubleshooting",
+          "severity": "minor"
+        }
+      ],
+      "quality_checks": [
+        {
+          "id": "CONTENT-008",
+          "name": "No TODO placeholders",
+          "pattern": "TODO|FIXME|XXX|\\{\\{.*\\}\\}",
+          "should_not_match": true,
+          "severity": "major"
+        },
+        {
+          "id": "CONTENT-009",
+          "name": "Purpose is concise (2-5 sentences)",
+          "severity": "minor"
+        },
+        {
+          "id": "CONTENT-010",
+          "name": "Examples have expected outputs",
+          "severity": "minor"
+        }
+      ]
+    },
+    "anthropic": {
+      "enabled": true,
+      "severity": "major",
+      "description": "Anthropic best practices for progressive disclosure and skill design",
+      "checks": [
+        {
+          "id": "ANTHROPIC-001",
+          "name": "Progressive disclosure: Core content in SKILL.md",
+          "required": true,
+          "severity": "minor",
+          "note": "Core instructions should be in SKILL.md, extended content in separate files"
+        },
+        {
+          "id": "ANTHROPIC-002",
+          "name": "Referenced files for extended content",
+          "required": false,
+          "severity": "minor",
+          "note": "Use reference.md, examples.md for detailed documentation"
+        },
+        {
+          "id": "ANTHROPIC-003",
+          "name": "Description contains specific trigger terms",
+          "required": true,
+          "severity": "major",
+          "note": "Users should be able to find skill by mentioning specific keywords"
+        },
+        {
+          "id": "ANTHROPIC-004",
+          "name": "Scope is appropriately focused",
+          "required": true,
+          "severity": "major",
+          "note": "Avoid overly broad skills; split into multiple skills if handling unrelated tasks"
+        },
+        {
+          "id": "ANTHROPIC-005",
+          "name": "Security considerations documented",
+          "required": false,
+          "severity": "minor",
+          "pattern": "## Security|security|Safety",
+          "note": "Skills with code execution or external connections should document security"
+        },
+        {
+          "id": "ANTHROPIC-006",
+          "name": "Script purpose documented (execute vs reference)",
+          "required": false,
+          "severity": "minor",
+          "note": "Clarify whether Claude should execute scripts or use them as reference"
+        },
+        {
+          "id": "ANTHROPIC-007",
+          "name": "SKILL.md size reasonable (<3000 lines)",
+          "required": false,
+          "severity": "minor",
+          "max_lines": 3000,
+          "note": "Split large skills into separate files for better progressive disclosure"
+        }
+      ]
+    },
+    "quality": {
+      "enabled": true,
+      "severity": "minor",
+      "checks": [
+        {
+          "id": "QUALITY-001",
+          "name": "Uses imperative form (not 'you should')",
+          "pattern": "you should|you must|you can",
+          "should_not_match": true,
+          "severity": "minor"
+        },
+        {
+          "id": "QUALITY-002",
+          "name": "Workflows have numbered steps",
+          "severity": "minor"
+        },
+        {
+          "id": "QUALITY-003",
+          "name": "Examples are concrete (not abstract)",
+          "severity": "minor"
+        },
+        {
+          "id": "QUALITY-004",
+          "name": "Code examples are syntactically valid",
+          "severity": "minor"
+        },
+        {
+          "id": "QUALITY-005",
+          "name": "Consistent with other skills",
+          "severity": "minor"
+        },
+        {
+          "id": "QUALITY-006",
+          "name": "Proper markdown formatting",
+          "severity": "minor"
+        }
+      ]
+    }
+  },
+  "auto_fix": {
+    "enabled": true,
+    "require_confirmation": true,
+    "fixable_issues": [
+      {
+        "issue_id": "STRUCT-005",
+        "fix_type": "chmod",
+        "description": "Make scripts executable"
+      },
+      {
+        "issue_id": "YAML-004",
+        "fix_type": "rename",
+        "description": "Rename skill directory to match name"
+      },
+      {
+        "issue_id": "CONTENT-008",
+        "fix_type": "remove",
+        "description": "Remove TODO placeholders"
+      }
+    ]
+  },
+  "reporting": {
+    "format": "markdown",
+    "include_strengths": true,
+    "include_recommendations": true,
+    "include_comparison": true,
+    "save_reports": true,
+    "report_directory": "docs/skills/reviews"
+  }
+}

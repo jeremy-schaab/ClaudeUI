@@ -1,0 +1,262 @@
+# Skill Test Report
+
+## Test Summary
+
+| Field | Value |
+|-------|-------|
+| **Report ID** | {{REPORT_ID}} |
+| **Skill Name** | `{{SKILL_NAME}}` |
+| **Test Case ID** | `{{TEST_CASE_ID}}` |
+| **Test Case Name** | {{TEST_CASE_NAME}} |
+| **Timestamp** | {{TIMESTAMP}} |
+| **Status** | {{STATUS_EMOJI}} **{{STATUS_TEXT}}** |
+| **Duration** | {{DURATION}}s |
+
+---
+
+## Test Case Information
+
+**Description:** {{TEST_DESCRIPTION}}
+
+**Priority:** {{PRIORITY}}
+
+**User Request:**
+```
+{{USER_REQUEST}}
+```
+
+**Context Files:**
+{{#CONTEXT_FILES}}
+- `{{FILE_PATH}}`
+{{/CONTEXT_FILES}}
+
+---
+
+## Validation Results
+
+### 1. Output Validation
+
+**Status:** {{OUTPUT_STATUS}}
+
+| File | Status | Details |
+|------|--------|---------|
+{{#OUTPUT_FILES}}
+| `{{FILE_PATH}}` | {{FILE_STATUS}} | {{FILE_DETAILS}} |
+{{/OUTPUT_FILES}}
+
+**Pattern Matching:**
+{{#PATTERNS}}
+- {{PATTERN_STATUS}} `{{PATTERN}}` in `{{FILE}}`
+{{/PATTERNS}}
+
+**Summary:**
+- Files expected: {{FILES_EXPECTED}}
+- Files found: {{FILES_FOUND}}
+- Patterns expected: {{PATTERNS_EXPECTED}}
+- Patterns matched: {{PATTERNS_MATCHED}}
+
+---
+
+### 2. Syntax Validation
+
+**Status:** {{SYNTAX_STATUS}}
+
+{{#CSHARP_FILES}}
+- {{SYNTAX_FILE_STATUS}} `{{FILE_PATH}}` - {{SYNTAX_DETAILS}}
+{{/CSHARP_FILES}}
+
+---
+
+### 3. Build Validation
+
+**Status:** {{BUILD_STATUS}}
+
+| Metric | Value |
+|--------|-------|
+| Build Result | {{BUILD_RESULT}} |
+| Errors | {{BUILD_ERRORS}} |
+| Warnings | {{BUILD_WARNINGS}} |
+| Configuration | {{BUILD_CONFIG}} |
+| Duration | {{BUILD_DURATION}}s |
+
+{{#BUILD_ERRORS_DETAIL}}
+**Build Errors:**
+```
+{{BUILD_ERROR_TEXT}}
+```
+{{/BUILD_ERRORS_DETAIL}}
+
+---
+
+### 4. Test Validation
+
+**Status:** {{TEST_STATUS}}
+
+| Metric | Value |
+|--------|-------|
+| Test Result | {{TEST_RESULT}} |
+| Total Tests | {{TESTS_TOTAL}} |
+| Passed | {{TESTS_PASSED}} ✅ |
+| Failed | {{TESTS_FAILED}} ❌ |
+| Skipped | {{TESTS_SKIPPED}} |
+| Pass Rate | {{PASS_RATE}}% |
+| Coverage | {{COVERAGE}}% |
+| Duration | {{TEST_DURATION}}s |
+
+{{#FAILED_TESTS}}
+**Failed Tests:**
+{{#FAILED_TEST_LIST}}
+- `{{TEST_NAME}}` - {{FAILURE_REASON}}
+{{/FAILED_TEST_LIST}}
+{{/FAILED_TESTS}}
+
+---
+
+## Overall Assessment
+
+**Result:** {{OVERALL_STATUS_EMOJI}} **{{OVERALL_STATUS}}**
+
+{{#STATUS_PASSED}}
+✅ **All validations passed successfully!**
+
+The skill is working as expected. The generated code:
+- Creates all expected files
+- Contains required patterns and constructs
+- Compiles without errors or warnings
+- Passes all tests with good coverage
+
+**Quality Metrics:**
+- Code quality: ✅ Excellent
+- Test coverage: {{COVERAGE}}% (target: 80%)
+- Build success: ✅ Yes
+- Standards compliance: ✅ C# 13 / .NET 9
+{{/STATUS_PASSED}}
+
+{{#STATUS_FAILED}}
+❌ **Validation failures detected. Action required.**
+
+Please address the following issues:
+
+**Critical Issues:**
+{{#CRITICAL_ISSUES}}
+- {{ISSUE_DESCRIPTION}}
+{{/CRITICAL_ISSUES}}
+
+**Action Items:**
+1. Review the validation failures above
+2. Fix the identified issues in the skill implementation
+3. Re-run the test to verify fixes
+4. Update test case expectations if they are incorrect
+{{/STATUS_FAILED}}
+
+{{#STATUS_WARNING}}
+⚠️ **Test passed with warnings.**
+
+The skill works but has non-critical issues that should be addressed:
+
+**Warnings:**
+{{#WARNINGS}}
+- {{WARNING_DESCRIPTION}}
+{{/WARNINGS}}
+
+**Recommendations:**
+- Address warnings to improve code quality
+- Review skipped validations
+- Consider enabling stricter checks
+{{/STATUS_WARNING}}
+
+---
+
+## Diagnostics
+
+### Test Environment
+
+- **OS:** {{OS_TYPE}}
+- **OS Version:** {{OS_VERSION}}
+- **dotnet Version:** {{DOTNET_VERSION}}
+- **Working Directory:** `{{WORKING_DIR}}`
+- **Workspace Path:** `{{WORKSPACE_PATH}}`
+
+### Generated Files
+
+{{#GENERATED_FILES}}
+- `{{FILE_PATH}}` ({{FILE_SIZE}} lines)
+{{/GENERATED_FILES}}
+
+### Execution Timeline
+
+1. **{{PHASE1_TIME}}** - Output validation
+2. **{{PHASE2_TIME}}** - Syntax validation
+3. **{{PHASE3_TIME}}** - Build validation
+4. **{{PHASE4_TIME}}** - Test validation
+5. **{{PHASE5_TIME}}** - Report generation
+
+**Total Duration:** {{TOTAL_DURATION}}s
+
+---
+
+## Recommendations
+
+{{#RECOMMENDATIONS}}
+### {{RECOMMENDATION_TITLE}}
+
+{{RECOMMENDATION_TEXT}}
+
+**Action Items:**
+{{#ACTION_ITEMS}}
+- {{ACTION_ITEM}}
+{{/ACTION_ITEMS}}
+{{/RECOMMENDATIONS}}
+
+---
+
+## Next Steps
+
+{{#PASSED}}
+✅ **No action required - test passed!**
+
+Consider:
+- Adding more test cases to cover edge scenarios
+- Testing with different inputs or configurations
+- Documenting any special requirements
+{{/PASSED}}
+
+{{#FAILED}}
+❌ **Action required:**
+
+1. **Investigate failures** - Review the validation results and error messages
+2. **Fix issues** - Update the skill implementation to address failures
+3. **Re-test** - Run the test again to verify fixes
+4. **Update docs** - Document any changes or special requirements
+{{/FAILED}}
+
+{{#WARNING}}
+⚠️ **Optional improvements:**
+
+1. Address warnings to improve quality
+2. Enable additional validations
+3. Review test coverage and add tests if needed
+{{/WARNING}}
+
+---
+
+## Related Resources
+
+- **Test Case File:** `test-cases/{{SKILL_NAME}}.yaml`
+- **Skill Definition:** `.claude/skills/{{SKILL_NAME}}/SKILL.md`
+- **Test Configuration:** `config/test-config.json`
+- **Validation Scripts:** `scripts/`
+
+---
+
+## Report Metadata
+
+- **Generated By:** skill-tester v1.0
+- **Report Format:** Markdown
+- **Template Version:** 1.0
+- **Report Path:** `{{REPORT_PATH}}`
+- **Generated At:** {{GENERATION_TIMESTAMP}}
+
+---
+
+*End of Report*

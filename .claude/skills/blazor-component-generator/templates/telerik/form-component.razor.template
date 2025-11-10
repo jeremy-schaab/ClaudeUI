@@ -1,0 +1,48 @@
+@using {{NAMESPACE}}.Models.ViewModels
+@using Telerik.Blazor.Components
+@inject ILogger<{{COMPONENT_NAME}}> Logger
+
+<EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="k-form k-form-vertical">
+{{FORM_FIELDS}}
+    </div>
+
+    <div class="k-form-buttons k-buttons-end">
+        <TelerikButton ButtonType="@ButtonType.Submit"
+                       ThemeColor="@ThemeColor.Primary"
+                       Icon="@SvgIcon.Save">
+            Save
+        </TelerikButton>
+        <TelerikButton ButtonType="@ButtonType.Button"
+                       OnClick="@OnCancelClick"
+                       Icon="@SvgIcon.Cancel">
+            Cancel
+        </TelerikButton>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public {{ENTITY_NAME}}Model Model { get; set; } = new();
+    [Parameter] public EventCallback<{{ENTITY_NAME}}Model> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            await OnSubmit.InvokeAsync(Model);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error submitting form for {{ENTITY_NAME_LOWER}}");
+        }
+    }
+
+    private async Task OnCancelClick()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

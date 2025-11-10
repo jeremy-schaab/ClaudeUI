@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UI Framework Detection Configuration",
+  "description": "Configuration for detecting which Blazor UI framework is in use (Syncfusion, Telerik, or MudBlazor)",
+  "frameworks": {
+    "syncfusion": {
+      "name": "Syncfusion Blazor",
+      "id": "syncfusion",
+      "priority": 1,
+      "detection": {
+        "packagePatterns": [
+          "Syncfusion.Blazor",
+          "Syncfusion.Blazor.Grid",
+          "Syncfusion.Blazor.Inputs",
+          "Syncfusion.Blazor.Calendars",
+          "Syncfusion.Blazor.DropDowns",
+          "Syncfusion.Blazor.Buttons",
+          "Syncfusion.Blazor.Popups"
+        ],
+        "usingDirectives": [
+          "@using Syncfusion.Blazor",
+          "@using Syncfusion.Blazor.Grids",
+          "@using Syncfusion.Blazor.Inputs",
+          "@using Syncfusion.Blazor.Calendars",
+          "@using Syncfusion.Blazor.DropDowns",
+          "@using Syncfusion.Blazor.Buttons",
+          "@using Syncfusion.Blazor.Popups"
+        ],
+        "serviceRegistration": [
+          "AddSyncfusionBlazor()",
+          "builder.Services.AddSyncfusionBlazor"
+        ],
+        "minConfidence": 0.7
+      },
+      "installation": {
+        "packages": [
+          "Syncfusion.Blazor.Grid",
+          "Syncfusion.Blazor.Inputs",
+          "Syncfusion.Blazor.Calendars",
+          "Syncfusion.Blazor.DropDowns",
+          "Syncfusion.Blazor.Buttons",
+          "Syncfusion.Blazor.Popups"
+        ],
+        "serviceRegistration": "builder.Services.AddSyncfusionBlazor();",
+        "usingDirectives": [
+          "@using Syncfusion.Blazor",
+          "@using Syncfusion.Blazor.Grids",
+          "@using Syncfusion.Blazor.Inputs",
+          "@using Syncfusion.Blazor.Calendars",
+          "@using Syncfusion.Blazor.DropDowns",
+          "@using Syncfusion.Blazor.Buttons",
+          "@using Syncfusion.Blazor.Popups"
+        ],
+        "themeLink": "<link href=\"_content/Syncfusion.Blazor.Themes/bootstrap5.css\" rel=\"stylesheet\" />"
+      },
+      "license": {
+        "type": "commercial",
+        "description": "Syncfusion Blazor is a commercial product. Requires license key.",
+        "registrationCode": "Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(\"YOUR-LICENSE-KEY\");"
+      }
+    },
+    "telerik": {
+      "name": "Telerik UI for Blazor",
+      "id": "telerik",
+      "priority": 2,
+      "detection": {
+        "packagePatterns": [
+          "Telerik.UI.for.Blazor"
+        ],
+        "usingDirectives": [
+          "@using Telerik.Blazor",
+          "@using Telerik.Blazor.Components",
+          "@using Telerik.SvgIcons"
+        ],
+        "serviceRegistration": [
+          "AddTelerikBlazor()",
+          "builder.Services.AddTelerikBlazor"
+        ],
+        "minConfidence": 0.7
+      },
+      "installation": {
+        "packages": [
+          "Telerik.UI.for.Blazor"
+        ],
+        "serviceRegistration": "builder.Services.AddTelerikBlazor();",
+        "usingDirectives": [
+          "@using Telerik.Blazor",
+          "@using Telerik.Blazor.Components",
+          "@using Telerik.SvgIcons"
+        ],
+        "rootComponent": "<TelerikRootComponent>\n    @Body\n</TelerikRootComponent>",
+        "themeLink": "<link href=\"https://unpkg.com/@progress/kendo-theme-default@latest/dist/all.css\" rel=\"stylesheet\" />"
+      },
+      "license": {
+        "type": "commercial",
+        "description": "Telerik UI for Blazor is a commercial product. Requires license.",
+        "registrationCode": null
+      }
+    },
+    "mudblazor": {
+      "name": "MudBlazor",
+      "id": "mudblazor",
+      "priority": 3,
+      "detection": {
+        "packagePatterns": [
+          "MudBlazor"
+        ],
+        "usingDirectives": [
+          "@using MudBlazor"
+        ],
+        "serviceRegistration": [
+          "AddMudServices()",
+          "builder.Services.AddMudServices"
+        ],
+        "minConfidence": 0.7
+      },
+      "installation": {
+        "packages": [
+          "MudBlazor"
+        ],
+        "serviceRegistration": "using MudBlazor.Services;\n\nbuilder.Services.AddMudServices();",
+        "usingDirectives": [
+          "@using MudBlazor"
+        ],
+        "providers": "<MudThemeProvider />\n<MudDialogProvider />\n<MudSnackbarProvider />",
+        "themeLink": "<link href=\"_content/MudBlazor/MudBlazor.min.css\" rel=\"stylesheet\" />\n<link href=\"https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap\" rel=\"stylesheet\" />\n<link href=\"https://fonts.googleapis.com/icon?family=Material+Icons\" rel=\"stylesheet\" />"
+      },
+      "license": {
+        "type": "open-source",
+        "description": "MudBlazor is open-source under MIT License. Free for commercial and personal use.",
+        "registrationCode": null
+      }
+    }
+  },
+  "detectionStrategy": {
+    "searchPaths": {
+      "csproj": [
+        "**/*.csproj"
+      ],
+      "imports": [
+        "_Imports.razor",
+        "**/Components/_Imports.razor",
+        "**/Pages/_Imports.razor"
+      ],
+      "program": [
+        "Program.cs",
+        "Startup.cs"
+      ]
+    },
+    "scoringWeights": {
+      "packageReference": 10,
+      "usingDirective": 5,
+      "serviceRegistration": 8
+    },
+    "conflictResolution": {
+      "strategy": "highest-priority",
+      "description": "If multiple frameworks detected, use framework with highest priority (lowest number)"
+    }
+  },
+  "detectionSteps": [
+    {
+      "step": 1,
+      "action": "search-packages",
+      "description": "Search .csproj files for package references",
+      "command": "rg '{pattern}' --glob '*.csproj'",
+      "scoreWeight": 10
+    },
+    {
+      "step": 2,
+      "action": "search-using-directives",
+      "description": "Search _Imports.razor for using directives",
+      "command": "rg '{pattern}' --glob '*Imports.razor'",
+      "scoreWeight": 5
+    },
+    {
+      "step": 3,
+      "action": "search-service-registration",
+      "description": "Search Program.cs for service registration",
+      "command": "rg '{pattern}' --glob 'Program.cs'",
+      "scoreWeight": 8
+    },
+    {
+      "step": 4,
+      "action": "calculate-confidence",
+      "description": "Calculate confidence score for each framework",
+      "formula": "(packageMatches * 10 + usingMatches * 5 + serviceMatches * 8) / maxPossibleScore"
+    },
+    {
+      "step": 5,
+      "action": "select-framework",
+      "description": "Select framework with confidence >= minConfidence, or highest priority if multiple match"
+    }
+  ],
+  "fallback": {
+    "behavior": "prompt-user",
+    "message": "Unable to detect UI framework automatically. Please specify: Syncfusion, Telerik, or MudBlazor",
+    "default": null
+  }
+}

@@ -1,0 +1,371 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MudBlazor Components Configuration",
+  "description": "Component mappings and configurations for MudBlazor (Material Design)",
+  "framework": {
+    "name": "MudBlazor",
+    "id": "mudblazor",
+    "version": "7.x",
+    "namespace": "MudBlazor",
+    "license": "MIT"
+  },
+  "components": {
+    "dataGrid": {
+      "name": "MudDataGrid",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "items": "Items",
+        "filterable": "Filterable",
+        "sortMode": "SortMode",
+        "pagination": "Pagination",
+        "rowsPerPage": "RowsPerPage",
+        "readOnly": "ReadOnly",
+        "editMode": "EditMode"
+      },
+      "childComponents": {
+        "columns": "Columns",
+        "propertyColumn": "PropertyColumn",
+        "templateColumn": "TemplateColumn",
+        "toolBarContent": "ToolBarContent"
+      }
+    },
+    "dialog": {
+      "name": "MudDialog",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "properties": {},
+      "childComponents": {
+        "dialogContent": "DialogContent",
+        "dialogActions": "DialogActions"
+      },
+      "cascadingParameter": "MudDialogInstance"
+    },
+    "textField": {
+      "name": "MudTextField",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "value": "@bind-Value",
+        "label": "Label",
+        "variant": "Variant",
+        "required": "Required",
+        "requiredError": "RequiredError",
+        "maxLength": "MaxLength",
+        "helperText": "HelperText",
+        "lines": "Lines"
+      }
+    },
+    "numericField": {
+      "name": "MudNumericField",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "value": "@bind-Value",
+        "label": "Label",
+        "variant": "Variant",
+        "format": "Format",
+        "min": "Min",
+        "max": "Max",
+        "step": "Step",
+        "hideSpinButtons": "HideSpinButtons"
+      }
+    },
+    "datePicker": {
+      "name": "MudDatePicker",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "properties": {
+        "date": "@bind-Date",
+        "label": "Label",
+        "variant": "Variant",
+        "dateFormat": "DateFormat",
+        "minDate": "MinDate",
+        "maxDate": "MaxDate",
+        "firstDayOfWeek": "FirstDayOfWeek"
+      }
+    },
+    "select": {
+      "name": "MudSelect",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "value": "@bind-Value",
+        "label": "Label",
+        "variant": "Variant",
+        "required": "Required",
+        "clearable": "Clearable",
+        "dense": "Dense",
+        "multiSelection": "MultiSelection"
+      },
+      "childComponents": {
+        "selectItem": "MudSelectItem"
+      }
+    },
+    "autocomplete": {
+      "name": "MudAutocomplete",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "value": "@bind-Value",
+        "searchFunc": "SearchFunc",
+        "label": "Label",
+        "variant": "Variant",
+        "toStringFunc": "ToStringFunc",
+        "resetValueOnEmptyText": "ResetValueOnEmptyText",
+        "coerceText": "CoerceText"
+      }
+    },
+    "checkBox": {
+      "name": "MudCheckBox",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "checked": "@bind-Checked",
+        "label": "Label",
+        "color": "Color"
+      }
+    },
+    "switch": {
+      "name": "MudSwitch",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "typeParameter": "T",
+      "properties": {
+        "checked": "@bind-Checked",
+        "label": "Label",
+        "color": "Color"
+      }
+    },
+    "button": {
+      "name": "MudButton",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "properties": {
+        "onClick": "OnClick",
+        "color": "Color",
+        "variant": "Variant",
+        "startIcon": "StartIcon",
+        "endIcon": "EndIcon",
+        "disabled": "Disabled"
+      }
+    },
+    "iconButton": {
+      "name": "MudIconButton",
+      "namespace": "MudBlazor",
+      "package": "MudBlazor",
+      "properties": {
+        "icon": "Icon",
+        "color": "Color",
+        "size": "Size",
+        "onClick": "OnClick"
+      }
+    }
+  },
+  "typeMapping": {
+    "string": {
+      "component": "MudTextField<string>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined"
+      }
+    },
+    "string_multiline": {
+      "component": "MudTextField<string>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "Lines": "5"
+      }
+    },
+    "int": {
+      "component": "MudNumericField<int>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "Format": "N0"
+      }
+    },
+    "decimal": {
+      "component": "MudNumericField<decimal>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "Format": "C2",
+        "Min": "0"
+      }
+    },
+    "double": {
+      "component": "MudNumericField<double>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "Format": "N2"
+      }
+    },
+    "DateTime": {
+      "component": "MudDatePicker",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "DateFormat": "yyyy-MM-dd"
+      }
+    },
+    "DateTimeOffset": {
+      "component": "MudDatePicker",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "DateFormat": "yyyy-MM-dd"
+      }
+    },
+    "bool": {
+      "component": "MudCheckBox<bool>",
+      "defaultConfig": {
+        "Color": "Color.Primary"
+      }
+    },
+    "enum": {
+      "component": "MudSelect<TEnum>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined"
+      }
+    },
+    "foreignKey": {
+      "component": "MudAutocomplete<TEntity>",
+      "defaultConfig": {
+        "Variant": "Variant.Outlined",
+        "ResetValueOnEmptyText": "true",
+        "CoerceText": "true"
+      }
+    }
+  },
+  "dataGridConfiguration": {
+    "defaultPageSize": 10,
+    "defaultEditMode": "Form",
+    "sortMode": "Multiple",
+    "columnDefaults": {
+      "primaryKey": {},
+      "string": {},
+      "number": {
+        "Format": "N2"
+      },
+      "currency": {
+        "Format": "C2"
+      },
+      "date": {
+        "Format": "yyyy-MM-dd"
+      },
+      "boolean": {}
+    }
+  },
+  "formConfiguration": {
+    "defaultVariant": "Variant.Outlined",
+    "validationDisplay": "ValidationSummary",
+    "layout": {
+      "columnsPerRow": 2,
+      "fieldSpacing": "16px"
+    }
+  },
+  "styling": {
+    "variants": [
+      "Text",
+      "Filled",
+      "Outlined"
+    ],
+    "defaultVariant": "Outlined",
+    "colors": [
+      "Default",
+      "Primary",
+      "Secondary",
+      "Tertiary",
+      "Info",
+      "Success",
+      "Warning",
+      "Error",
+      "Dark",
+      "Transparent",
+      "Inherit"
+    ],
+    "defaultColor": "Primary",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large"
+    ],
+    "defaultSize": "Medium"
+  },
+  "icons": {
+    "namespace": "Icons.Material",
+    "variants": [
+      "Filled",
+      "Outlined",
+      "Rounded",
+      "Sharp",
+      "TwoTone"
+    ],
+    "defaultVariant": "Filled",
+    "common": {
+      "add": "Icons.Material.Filled.Add",
+      "edit": "Icons.Material.Filled.Edit",
+      "delete": "Icons.Material.Filled.Delete",
+      "save": "Icons.Material.Filled.Save",
+      "close": "Icons.Material.Filled.Close",
+      "search": "Icons.Material.Filled.Search"
+    }
+  },
+  "dialogService": {
+    "showAsync": "DialogService.ShowAsync<TComponent>",
+    "showMessageBox": "DialogService.ShowMessageBox",
+    "options": {
+      "closeButton": "CloseButton",
+      "maxWidth": "MaxWidth",
+      "fullWidth": "FullWidth",
+      "position": "Position"
+    }
+  },
+  "snackbar": {
+    "service": "ISnackbar",
+    "methods": {
+      "add": "Snackbar.Add(message, Severity)",
+      "addSuccess": "Snackbar.Add(message, Severity.Success)",
+      "addInfo": "Snackbar.Add(message, Severity.Info)",
+      "addWarning": "Snackbar.Add(message, Severity.Warning)",
+      "addError": "Snackbar.Add(message, Severity.Error)"
+    },
+    "severity": [
+      "Normal",
+      "Info",
+      "Success",
+      "Warning",
+      "Error"
+    ]
+  },
+  "eventHandlers": {
+    "dataGrid": {
+      "committedItemChanges": "CommittedItemChanges"
+    },
+    "dialog": {
+      "onClose": "MudDialog.Close()",
+      "onCancel": "MudDialog.Cancel()"
+    },
+    "form": {
+      "onValidSubmit": "OnValidSubmit",
+      "onInvalidSubmit": "OnInvalidSubmit"
+    }
+  },
+  "bestPractices": {
+    "variant": "Use Variant.Outlined for consistent Material Design appearance",
+    "color": "Use Color.Primary for primary actions, Color.Error for destructive actions",
+    "autocomplete": "Use MudAutocomplete for foreign key lookups with SearchFunc",
+    "snackbar": "Use Snackbar for user feedback instead of alerts",
+    "dialog": "Always inject IDialogService and use ShowAsync for dialogs",
+    "icons": "Use Icons.Material.Filled for standard icons",
+    "providers": "Ensure MudThemeProvider, MudDialogProvider, and MudSnackbarProvider are in layout"
+  },
+  "commonPatterns": {
+    "confirmation": "DialogService.ShowMessageBox with yesText and cancelText",
+    "loading": "MudOverlay with MudProgressCircular",
+    "notification": "Snackbar.Add with appropriate Severity",
+    "validation": "EditForm with DataAnnotationsValidator and ValidationSummary"
+  }
+}

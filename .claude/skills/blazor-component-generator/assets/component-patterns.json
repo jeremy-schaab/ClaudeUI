@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Component Patterns Configuration",
+  "description": "Generic component naming conventions and patterns for Blazor component generation",
+  "componentLocations": {
+    "description": "Common Blazor component location patterns. Skill will search these patterns.",
+    "searchPatterns": [
+      "**/Components/Pages",
+      "**/Pages",
+      "**/Components",
+      "**/Shared",
+      "**/Components/Shared",
+      "**/Dialogs",
+      "**/Forms"
+    ],
+    "preferredLocations": {
+      "pages": "Components/Pages",
+      "components": "Components",
+      "dialogs": "Components/Dialogs",
+      "shared": "Components/Shared",
+      "forms": "Components/Forms"
+    }
+  },
+  "namingConventions": {
+    "gridComponent": "{EntityName}Grid",
+    "dialogComponent": "{Action}{EntityName}Dialog",
+    "formComponent": "{EntityName}Form",
+    "crudPage": "{EntityName}s",
+    "lookupComponent": "{EntityName}Lookup",
+    "detailComponent": "{EntityName}Detail",
+    "listComponent": "{EntityName}List"
+  },
+  "serviceDetection": {
+    "description": "Patterns for detecting service interfaces",
+    "patterns": [
+      "I{EntityName}Repository",
+      "I{EntityName}Service",
+      "I{EntityName}Manager",
+      "{EntityName}Repository",
+      "{EntityName}Service",
+      "{EntityName}Manager"
+    ],
+    "preferredPattern": "I{EntityName}Service",
+    "commonMethods": {
+      "getAll": [
+        "GetAllAsync",
+        "GetAsync",
+        "GetListAsync"
+      ],
+      "getById": [
+        "GetByIdAsync",
+        "GetAsync",
+        "FindAsync"
+      ],
+      "create": [
+        "CreateAsync",
+        "AddAsync",
+        "InsertAsync"
+      ],
+      "update": [
+        "UpdateAsync",
+        "ModifyAsync"
+      ],
+      "delete": [
+        "DeleteAsync",
+        "RemoveAsync"
+      ]
+    }
+  },
+  "serviceInjection": {
+    "entityService": "I{EntityName}Service",
+    "logger": "ILogger<{ComponentName}>",
+    "navigationManager": "NavigationManager",
+    "dialogService": "IDialogService",
+    "snackbar": "ISnackbar"
+  },
+  "commonUsings": {
+    "description": "Common using directives (framework-specific ones added at generation time)",
+    "always": [
+      "Microsoft.AspNetCore.Components",
+      "Microsoft.Extensions.Logging",
+      "System.ComponentModel.DataAnnotations"
+    ],
+    "conditional": {
+      "withForms": [
+        "Microsoft.AspNetCore.Components.Forms"
+      ],
+      "withNavigation": [
+        "Microsoft.AspNetCore.Components.Routing"
+      ],
+      "withAuth": [
+        "Microsoft.AspNetCore.Components.Authorization"
+      ]
+    }
+  },
+  "gridDefaults": {
+    "pageable": true,
+    "sortable": true,
+    "filterable": true,
+    "resizable": true,
+    "pageSize": 10,
+    "includeToolbar": true,
+    "includeCommandColumn": true,
+    "commandColumnWidth": "180px",
+    "primaryKeyEditable": false
+  },
+  "dialogDefaults": {
+    "width": "600px",
+    "height": "auto",
+    "modal": true,
+    "showCloseButton": true,
+    "animation": true
+  },
+  "formDefaults": {
+    "orientation": "Vertical",
+    "columnSpacing": "20px",
+    "validationDisplay": "ValidationSummary",
+    "includeRequiredAsterisk": true,
+    "buttonLayout": "Right"
+  },
+  "crudOperations": {
+    "create": {
+      "buttonText": "Add {EntityName}",
+      "dialogTitle": "Create {EntityName}",
+      "httpMethod": "POST",
+      "successMessage": "{EntityName} created successfully"
+    },
+    "edit": {
+      "buttonText": "Edit",
+      "dialogTitle": "Edit {EntityName}",
+      "httpMethod": "PUT",
+      "successMessage": "{EntityName} updated successfully"
+    },
+    "delete": {
+      "buttonText": "Delete",
+      "dialogTitle": "Delete {EntityName}",
+      "httpMethod": "DELETE",
+      "requireConfirmation": true,
+      "confirmationMessage": "Are you sure you want to delete this {EntityName}?",
+      "successMessage": "{EntityName} deleted successfully"
+    },
+    "view": {
+      "buttonText": "View",
+      "dialogTitle": "{EntityName} Details",
+      "readOnly": true
+    }
+  },
+  "iconMapping": {
+    "description": "Icon mappings for each framework",
+    "syncfusion": {
+      "add": "custom-icon",
+      "edit": "custom-icon",
+      "delete": "custom-icon",
+      "save": "custom-icon",
+      "cancel": "custom-icon",
+      "view": "custom-icon"
+    },
+    "telerik": {
+      "add": "SvgIcon.Plus",
+      "edit": "SvgIcon.Pencil",
+      "delete": "SvgIcon.Trash",
+      "save": "SvgIcon.Save",
+      "cancel": "SvgIcon.X",
+      "view": "SvgIcon.Eye"
+    },
+    "mudblazor": {
+      "add": "Icons.Material.Filled.Add",
+      "edit": "Icons.Material.Filled.Edit",
+      "delete": "Icons.Material.Filled.Delete",
+      "save": "Icons.Material.Filled.Save",
+      "cancel": "Icons.Material.Filled.Close",
+      "view": "Icons.Material.Filled.Visibility"
+    }
+  },
+  "colorMapping": {
+    "description": "Color/theme mappings for each framework",
+    "syncfusion": {
+      "primary": "e-primary",
+      "secondary": "e-secondary",
+      "success": "e-success",
+      "danger": "e-danger",
+      "warning": "e-warning",
+      "info": "e-info"
+    },
+    "telerik": {
+      "primary": "ThemeColor.Primary",
+      "secondary": "ThemeColor.Secondary",
+      "success": "ThemeColor.Success",
+      "danger": "ThemeColor.Error",
+      "warning": "ThemeColor.Warning",
+      "info": "ThemeColor.Info"
+    },
+    "mudblazor": {
+      "primary": "Color.Primary",
+      "secondary": "Color.Secondary",
+      "success": "Color.Success",
+      "danger": "Color.Error",
+      "warning": "Color.Warning",
+      "info": "Color.Info"
+    }
+  },
+  "specialPatterns": {
+    "multiTenant": {
+      "detection": [
+        "TenantId property exists",
+        "ITenantManager service exists",
+        "Multi-tenant context in service layer"
+      ],
+      "filterExpression": "u => u.TenantId == _tenantId",
+      "serviceMethod": "GetByTenantAsync",
+      "includeInModel": true,
+      "autoFilter": true
+    },
+    "softDelete": {
+      "detection": [
+        "IsDeleted property exists",
+        "DeletedAt property exists"
+      ],
+      "filterExpression": "u => !u.IsDeleted",
+      "includeInGrid": false,
+      "includeInForm": false
+    },
+    "audit": {
+      "detection": [
+        "CreatedDate/CreatedBy properties exist",
+        "ModifiedDate/ModifiedBy properties exist"
+      ],
+      "properties": [
+        "CreatedDate",
+        "CreatedBy",
+        "ModifiedDate",
+        "ModifiedBy"
+      ],
+      "includeInGrid": false,
+      "includeInForm": false,
+      "readOnly": true
+    },
+    "concurrency": {
+      "detection": [
+        "[Timestamp] attribute",
+        "RowVersion property",
+        "[ConcurrencyCheck] attribute"
+      ],
+      "includeInForm": false,
+      "includeInUpdate": true
+    }
+  },
+  "routePatterns": {
+    "crudPage": "/{entityName}s",
+    "detailPage": "/{entityName}s/{id:int}",
+    "createPage": "/{entityName}s/create",
+    "editPage": "/{entityName}s/{id:int}/edit",
+    "caseSensitive": false,
+    "convertToKebabCase": true
+  },
+  "errorHandling": {
+    "includeErrorBoundary": true,
+    "includeTryCatch": true,
+    "logErrors": true,
+    "displayUserFriendlyMessages": true,
+    "defaultErrorMessage": "An error occurred. Please try again."
+  },
+  "bestPractices": {
+    "useAsyncAwait": true,
+    "implementIDisposable": "when needed",
+    "useProperLifecycleMethods": true,
+    "validateInput": true,
+    "logOperations": true,
+    "handleNullCases": true,
+    "useNullableReferenceTypes": true,
+    "followNamingConventions": true
+  }
+}

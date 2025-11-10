@@ -1,0 +1,59 @@
+@using {{NAMESPACE}}.Models.ViewModels
+@using Telerik.Blazor.Components
+
+<TelerikDialog @bind-Visible="@IsVisible"
+               Width="600px"
+               Title="@Title"
+               ShowCloseButton="true">
+    <DialogContent>
+        <TelerikForm Model="@Model"
+                     OnValidSubmit="@OnValidSubmitHandler">
+            <FormValidation>
+                <DataAnnotationsValidator />
+            </FormValidation>
+            <FormItems>
+{{FORM_ITEMS}}
+            </FormItems>
+        </TelerikForm>
+    </DialogContent>
+    <DialogButtons>
+        <TelerikButton OnClick="@OnSaveAsync"
+                       ThemeColor="@ThemeColor.Primary"
+                       Icon="@SvgIcon.Save">
+            Save
+        </TelerikButton>
+        <TelerikButton OnClick="@OnCancelAsync"
+                       Icon="@SvgIcon.Cancel">
+            Cancel
+        </TelerikButton>
+    </DialogButtons>
+</TelerikDialog>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public {{ENTITY_NAME}}Model Model { get; set; } = new();
+    [Parameter] public EventCallback OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string Title => string.IsNullOrEmpty(Model?.{{ID_FIELD}})
+        ? "Create {{ENTITY_NAME}}"
+        : "Edit {{ENTITY_NAME}}";
+
+    private async Task OnValidSubmitHandler()
+    {
+        await OnSaveAsync();
+    }
+
+    private async Task OnSaveAsync()
+    {
+        await OnSave.InvokeAsync();
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+
+    private async Task OnCancelAsync()
+    {
+        await OnCancel.InvokeAsync();
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+}

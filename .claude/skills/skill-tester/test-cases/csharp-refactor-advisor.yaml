@@ -1,0 +1,91 @@
+skill_name: csharp-refactor-advisor
+test_suite_version: "1.0"
+description: Test suite for csharp-refactor-advisor skill - validates SOLID refactoring, design pattern application, and C# 13 modernization
+
+test_cases:
+  - id: TC-REFACTOR-001
+    name: Refactor to SOLID Principles
+    priority: high
+    input:
+      user_request: "Refactor OrderProcessor class to follow SOLID principles, particularly Single Responsibility and Dependency Inversion"
+      context_files:
+        - src/Services/OrderProcessor.cs
+    expected_outputs:
+      - file: src/Services/OrderProcessor.cs
+        patterns:
+          - "class OrderProcessor"
+          - "IOrderValidator"
+          - "IOrderRepository"
+          - "INotificationService"
+          - "private readonly"
+          - "public OrderProcessor("
+      - file: src/Services/IOrderValidator.cs
+        patterns:
+          - "interface IOrderValidator"
+          - "Task<bool> ValidateAsync"
+      - file: src/Services/IOrderRepository.cs
+        patterns:
+          - "interface IOrderRepository"
+          - "Task<Order>"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true
+    notes: "Validates SRP and DIP application. Ensures existing tests still pass after refactoring."
+
+  - id: TC-REFACTOR-002
+    name: Apply Repository Pattern
+    priority: medium
+    input:
+      user_request: "Apply Repository pattern to CustomerDataAccess class with generic repository and unit of work"
+      context_files:
+        - src/DataAccess/CustomerDataAccess.cs
+    expected_outputs:
+      - file: src/DataAccess/IRepository.cs
+        patterns:
+          - "interface IRepository<T>"
+          - "Task<T> GetByIdAsync"
+          - "Task<IEnumerable<T>> GetAllAsync"
+          - "Task AddAsync"
+          - "Task UpdateAsync"
+          - "Task DeleteAsync"
+      - file: src/DataAccess/CustomerRepository.cs
+        patterns:
+          - "class CustomerRepository : IRepository<Customer>"
+          - "DbContext"
+          - "async Task<Customer> GetByIdAsync"
+      - file: src/DataAccess/IUnitOfWork.cs
+        patterns:
+          - "interface IUnitOfWork"
+          - "Task<int> SaveChangesAsync"
+          - "Task BeginTransactionAsync"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true
+    notes: "Validates Repository and Unit of Work patterns with EF Core integration."
+
+  - id: TC-REFACTOR-003
+    name: Modernize to C# 13
+    priority: medium
+    input:
+      user_request: "Modernize ProductService to use C# 13 features: primary constructors, collection expressions, and improved pattern matching"
+      context_files:
+        - src/Services/ProductService.cs
+    expected_outputs:
+      - file: src/Services/ProductService.cs
+        patterns:
+          - "class ProductService("
+          - "[]"
+          - "is not null"
+          - "?.
+"
+          - "record"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true
+    notes: "Validates C# 13 feature usage: primary constructors, collection expressions, pattern matching enhancements."

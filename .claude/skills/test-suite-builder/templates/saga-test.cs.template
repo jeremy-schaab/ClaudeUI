@@ -1,0 +1,43 @@
+using MassTransit.Testing;
+using Xunit;
+using FluentAssertions;
+{{ADDITIONAL_USINGS}}
+
+namespace {{NAMESPACE}}.Tests;
+
+/// <summary>
+/// Tests for {{SAGA_NAME}} state machine
+/// </summary>
+public class {{SAGA_NAME}}Tests : InMemoryTestFixture
+{
+    private ISagaStateMachineTestHarness<{{SAGA_NAME}}, {{STATE_NAME}}> _harness;
+
+    public {{SAGA_NAME}}Tests()
+    {
+        _harness = Harness.StateMachineSaga<{{SAGA_NAME}}, {{STATE_NAME}}>(new {{SAGA_NAME}}());
+    }
+
+    [Fact]
+    public async Task {{SAGA_NAME}}_HappyPath_CompletesSuccessfully()
+    {
+        // Arrange
+        var correlationId = Guid.NewGuid();
+{{ARRANGE_CODE}}
+
+        // Act
+        await Harness.Bus.Publish(new {{INITIAL_EVENT}}
+        {
+            CorrelationId = correlationId,
+{{EVENT_PROPERTIES}}
+        });
+
+        // Assert
+        (await _harness.Consumed.Any<{{INITIAL_EVENT}}>()).Should().BeTrue();
+        (await _harness.Created.Any(x => x.CorrelationId == correlationId)).Should().BeTrue();
+
+        var instance = await _harness.Created.SelectAsync(x => x.CorrelationId == correlationId).First();
+        instance.CurrentState.Should().Be(_harness.StateMachine.{{EXPECTED_STATE}}.Name);
+    }
+
+{{ADDITIONAL_TEST_METHODS}}
+}

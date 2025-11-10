@@ -1,0 +1,213 @@
+name: Component Enhancement
+description: Add features to existing Blazor components (sorting, filtering, export, etc.)
+version: 1.0.0
+
+steps:
+  - step: 1
+    name: Locate Existing Component
+    action: find-component
+    description: Locate the existing component file in the project
+    input:
+      - component-name
+      - search-paths:
+          - Pages/
+          - Components/
+          - Features/
+    output:
+      - component-path
+      - component-code
+      - component-language: razor
+    validation:
+      - component-file-exists
+      - component-is-valid-razor
+    onFailure: report-component-not-found
+
+  - step: 2
+    name: Detect Framework
+    action: detect-framework
+    description: Detect the UI framework used in the component
+    input:
+      - component-code
+      - csproj-files
+      - _imports-razor-files
+    output:
+      - framework-id
+      - framework-name
+      - framework-version
+    validation:
+      - framework-detected
+    onFailure: prompt-user-for-framework
+
+  - step: 3
+    name: Parse Component Structure
+    action: analyze-component
+    description: Analyze the component structure to understand existing implementation
+    input:
+      - component-code
+    output:
+      - component-dependencies
+      - component-parameters
+      - component-methods
+      - component-state-variables
+      - component-markup
+    validation:
+      - component-structure-valid
+    onFailure: report-parse-error
+
+  - step: 4
+    name: Add Requested Features
+    action: enhance-component
+    description: Add requested features to the component
+    input:
+      - framework-id
+      - component-code
+      - requested-features:
+          - sorting
+          - filtering
+          - export
+          - pagination
+          - search
+          - column-hiding
+          - grouping
+          - virtual-scroll
+    output:
+      - enhanced-component-code
+      - new-methods
+      - new-parameters
+      - new-state-variables
+    features-config:
+      sorting:
+        implementation: enable-sort
+        adds-methods:
+          - OnSortChanged
+          - SortByColumn
+        adds-parameters:
+          - SortDirection
+          - SortColumn
+      filtering:
+        implementation: enable-filter
+        adds-methods:
+          - OnFilterChanged
+          - ApplyFilter
+        adds-parameters:
+          - FilterValue
+          - FilterColumn
+      export:
+        implementation: export-handler
+        adds-methods:
+          - ExportToExcel
+          - ExportToCsv
+          - ExportToPdf
+        adds-parameters:
+          - ExportFormat
+      pagination:
+        implementation: enable-pagination
+        adds-methods:
+          - OnPageChanged
+          - PageSizeChanged
+        adds-parameters:
+          - PageNumber
+          - PageSize
+          - TotalRecords
+      search:
+        implementation: search-handler
+        adds-methods:
+          - OnSearchChanged
+          - PerformSearch
+        adds-parameters:
+          - SearchTerm
+      column-hiding:
+        implementation: visible-columns
+        adds-methods:
+          - OnColumnVisibilityChanged
+          - ToggleColumn
+        adds-parameters:
+          - VisibleColumns
+      grouping:
+        implementation: enable-grouping
+        adds-methods:
+          - OnGroupChanged
+          - GroupByColumn
+        adds-parameters:
+          - GroupColumn
+      virtual-scroll:
+        implementation: virtual-scroll
+        adds-methods:
+          - OnVirtualScroll
+          - LoadMoreItems
+        adds-parameters:
+          - VirtualScrollItemHeight
+
+  - step: 5
+    name: Update Component Code
+    action: apply-enhancement
+    description: Apply the enhancements to the component file
+    input:
+      - component-path
+      - enhanced-component-code
+    output:
+      - updated-file-path
+      - changes-summary
+      - backup-created
+    validation:
+      - component-file-updated
+      - backup-exists
+    onFailure: restore-from-backup
+
+  - step: 6
+    name: Update Dependencies
+    action: update-imports
+    description: Update using directives and component imports if needed
+    input:
+      - component-path
+      - framework-id
+      - new-features
+    output:
+      - imports-updated
+      - new-imports
+    validation:
+      - all-imports-present
+    onFailure: report-missing-imports
+
+  - step: 7
+    name: Test Compilation
+    action: verify-compilation
+    description: Verify that the enhanced component compiles without errors
+    input:
+      - component-path
+      - project-root
+    output:
+      - compilation-result
+      - compilation-errors
+      - compilation-warnings
+    validation:
+      - compilation-successful
+      - no-critical-errors
+    onFailure: report-compilation-errors
+
+  - step: 8
+    name: Report Changes
+    action: generate-report
+    description: Generate a report of all changes made to the component
+    input:
+      - component-path
+      - enhanced-component-code
+      - changes-summary
+      - new-methods
+      - new-parameters
+    output:
+      - enhancement-report
+      - usage-examples
+      - breaking-changes
+
+summary:
+  total-steps: 8
+  success-criteria:
+    - component-located
+    - framework-detected
+    - features-added
+    - component-compiles
+  error-handling:
+    - automatic-backup: true
+    - restore-on-failure: true
+    - user-confirmation: required-for-breaking-changes

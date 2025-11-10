@@ -1,0 +1,107 @@
+@using {ProjectNamespace}.Models
+@using {ProjectNamespace}.Services
+@using System.ComponentModel.DataAnnotations
+@inject I{EntityName}Service {EntityName}Service
+@inject ISnackbar Snackbar
+@inject ILogger<{EntityName}Dialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudOverlay Visible="@_isSaving" DarkBackground="true" Absolute="true">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </MudOverlay>
+
+        <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <MudGrid Spacing="3">
+                <!-- {FORM_FIELDS} -->
+
+                <MudItem xs="12">
+                    <ValidationSummary />
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="@_isSaving">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="@HandleValidSubmit"
+                   Disabled="@_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>@(IsNew ? "Create" : "Save")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public {EntityName} Item { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; } = true;
+
+    private {EntityName} _model = new();
+    private bool _isSaving = false;
+
+    protected override void OnInitialized()
+    {
+        // Create a copy to avoid modifying the original until save
+        _model = new {EntityName}
+        {
+            {PrimaryKeyProperty} = Item.{PrimaryKeyProperty},
+            // {PROPERTY_ASSIGNMENTS}
+        };
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        _isSaving = true;
+        try
+        {
+            // Validate model
+            var validationContext = new ValidationContext(_model);
+            var validationResults = new List<ValidationResult>();
+
+            if (!Validator.TryValidateObject(_model, validationContext, validationResults, true))
+            {
+                foreach (var validationResult in validationResults)
+                {
+                    Snackbar.Add(validationResult.ErrorMessage ?? "Validation error", Severity.Error);
+                }
+                return;
+            }
+
+            // Copy values back to original item
+            CopyModelToItem();
+
+            MudDialog.Close(DialogResult.Ok(Item));
+            Logger.LogInformation("{Action} {EntityName} with ID: {{Id}}", IsNew ? "Created" : "Updated", Item.{PrimaryKeyProperty});
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving {EntityName}");
+            Snackbar.Add($"Error saving {EntityName}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void CopyModelToItem()
+    {
+        Item.{PrimaryKeyProperty} = _model.{PrimaryKeyProperty};
+        // {COPY_PROPERTIES}
+    }
+}

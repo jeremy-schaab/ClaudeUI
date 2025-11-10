@@ -1,0 +1,78 @@
+skill_name: test-suite-builder
+test_suite_version: "1.0"
+description: Test suite for test-suite-builder skill - validates unit test, integration test, and component test generation
+
+test_cases:
+  - id: TC-TSB-001
+    name: Generate Unit Tests for Service Class
+    priority: high
+    input:
+      user_request: "Generate comprehensive unit tests for ProductService class with CRUD operations"
+      context_files:
+        - src/Services/ProductService.cs
+    expected_outputs:
+      - file: tests/ProductServiceTests.cs
+        patterns:
+          - "public class ProductServiceTests"
+          - "using Xunit"
+          - "using Moq"
+          - "using FluentAssertions"
+          - "[Fact]"
+          - "public async Task"
+          - "// Arrange"
+          - "// Act"
+          - "// Assert"
+          - "Mock<IProductRepository>"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true
+    notes: "Validates AAA pattern, xUnit attributes, mocking, and async tests"
+
+  - id: TC-TSB-002
+    name: Generate Integration Tests with Database
+    priority: high
+    input:
+      user_request: "Generate integration tests for OrderRepository with real database interactions"
+      context_files:
+        - src/Repositories/OrderRepository.cs
+    expected_outputs:
+      - file: tests/Integration/OrderRepositoryIntegrationTests.cs
+        patterns:
+          - "public class OrderRepositoryIntegrationTests"
+          - "IClassFixture"
+          - "using Microsoft.EntityFrameworkCore"
+          - "[Fact]"
+          - "DbContextOptions"
+          - "InMemoryDatabase"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true
+    notes: "Validates integration test patterns, EF Core setup, and database fixtures"
+
+  - id: TC-TSB-003
+    name: Generate Blazor Component Tests
+    priority: medium
+    input:
+      user_request: "Generate bUnit tests for ProductGrid Blazor component"
+      context_files:
+        - src/Components/ProductGrid.razor
+    expected_outputs:
+      - file: tests/Components/ProductGridTests.cs
+        patterns:
+          - "public class ProductGridTests"
+          - "using Bunit"
+          - "TestContext"
+          - "RenderComponent"
+          - "[Fact]"
+          - "component.Find"
+          - "component.Instance"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: false
+    notes: "Validates bUnit patterns for Blazor component testing. Test execution disabled (requires Blazor runtime)."

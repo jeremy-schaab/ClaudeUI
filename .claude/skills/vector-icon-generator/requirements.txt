@@ -1,0 +1,11 @@
+# Vector Icon Generator Skill - Python Dependencies
+
+# SVG document generation and manipulation
+svgwrite>=1.4.3
+
+# XML parsing and validation
+lxml>=4.9.0
+
+# Note: PNG export dependencies (cairosvg, pillow) removed
+# PNG export is disabled - skill generates SVG files only
+# SVG files scale perfectly to any size without quality loss

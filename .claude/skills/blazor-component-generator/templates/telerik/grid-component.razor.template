@@ -1,0 +1,85 @@
+@using {{NAMESPACE}}.Models.ViewModels
+@using {{NAMESPACE}}.Services
+@inject I{{ENTITY_NAME}}Service {{ENTITY_NAME}}Service
+@inject ILogger<{{COMPONENT_NAME}}> Logger
+
+<TelerikGrid Data="@GridData"
+             OnRead="@OnReadHandler"
+             Pageable="true"
+             Sortable="true"
+             FilterMode="@GridFilterMode.FilterRow"
+             Resizable="true"
+             Reorderable="true"
+             PageSize="@PageSize">
+{{#if INCLUDE_TOOLBAR}}
+    <GridToolBarTemplate>
+        <GridCommandButton Command="Add" Icon="@SvgIcon.Plus" OnClick="@OnAddClick">
+            Add {{ENTITY_NAME}}
+        </GridCommandButton>
+    </GridToolBarTemplate>
+{{/if}}
+    <GridColumns>
+{{GRID_COLUMNS}}
+{{#if INCLUDE_COMMAND_COLUMN}}
+        <GridCommandColumn Width="180px">
+            <GridCommandButton Command="Edit" Icon="@SvgIcon.Pencil" OnClick="@(() => OnEditClick(context))">
+                Edit
+            </GridCommandButton>
+            <GridCommandButton Command="Delete" Icon="@SvgIcon.Trash" OnClick="@(() => OnDeleteClick(context))">
+                Delete
+            </GridCommandButton>
+        </GridCommandColumn>
+{{/if}}
+    </GridColumns>
+</TelerikGrid>
+
+@code {
+    [Parameter] public int PageSize { get; set; } = 20;
+    [Parameter] public EventCallback<{{ENTITY_NAME}}Model> OnEdit { get; set; }
+    [Parameter] public EventCallback<{{ENTITY_NAME}}Model> OnDelete { get; set; }
+    [Parameter] public EventCallback OnAdd { get; set; }
+
+    private List<{{ENTITY_NAME}}Model> GridData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+{{LOAD_DATA_IMPLEMENTATION}}
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading {{ENTITY_NAME_LOWER}}s");
+        }
+    }
+
+    private async Task OnReadHandler(GridReadEventArgs args)
+    {
+        await LoadDataAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task OnAddClick()
+    {
+        await OnAdd.InvokeAsync();
+    }
+
+    private async Task OnEditClick({{ENTITY_NAME}}Model item)
+    {
+        await OnEdit.InvokeAsync(item);
+    }
+
+    private async Task OnDeleteClick({{ENTITY_NAME}}Model item)
+    {
+        await OnDelete.InvokeAsync(item);
+    }
+}

@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "description": "Configuration for skill-tester skill",
+  "default_settings": {
+    "validation": {
+      "output_check": true,
+      "syntax_check": true,
+      "build_check": true,
+      "test_check": false
+    },
+    "timeouts": {
+      "build_timeout_seconds": 300,
+      "test_timeout_seconds": 600
+    },
+    "reporting": {
+      "verbose": true,
+      "save_reports": true,
+      "report_directory": "reports"
+    }
+  },
+  "dotnet_settings": {
+    "build_configuration": "Debug",
+    "test_verbosity": "normal",
+    "enable_coverage": true,
+    "coverage_tool": "coverlet"
+  },
+  "validation_patterns": {
+    "csharp_file_extensions": [".cs", ".razor", ".razor.cs"],
+    "test_file_patterns": ["*Tests.cs", "*.Tests/*.cs"],
+    "required_test_attributes": ["Fact", "Theory"]
+  },
+  "success_criteria": {
+    "minimum_coverage_percent": 80,
+    "allow_build_warnings": false,
+    "require_all_tests_pass": true
+  },
+  "test_priorities": {
+    "high": ["Must pass before release"],
+    "medium": ["Should pass, investigate failures"],
+    "low": ["Nice to have, informational"]
+  }
+}

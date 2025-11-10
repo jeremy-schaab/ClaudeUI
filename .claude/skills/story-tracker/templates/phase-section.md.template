@@ -1,0 +1,18 @@
+### {{PHASE_NAME}} {{PHASE_STATUS}}
+
+#### ✅ Completed Tasks
+{{#each COMPLETED_TASKS}}
+- [x] {{this}}
+{{/each}}
+
+{{#if PENDING_TASKS}}
+#### ⏳ Pending Tasks
+{{#each PENDING_TASKS}}
+- [ ] {{this}}
+{{/each}}
+{{/if}}
+
+{{#if NOTES}}
+#### Notes
+{{NOTES}}
+{{/if}}

@@ -1,0 +1,206 @@
+# Test Case Template for skill-tester
+# Copy this template to test-cases/[skill-name].yaml and fill in the details
+
+skill_name: your-skill-name
+test_suite_version: "1.0"
+description: Brief description of what this test suite validates
+
+test_cases:
+  # Example Test Case 1: Basic functionality test
+  - id: TC-SKILLNAME-001
+    name: Descriptive Test Case Name
+    priority: high  # Options: high, medium, low
+    input:
+      user_request: "The exact request that will be sent to the skill"
+      context_files:
+        - path/to/context/file1.cs
+        - path/to/context/file2.cs
+    expected_outputs:
+      - file: path/to/expected/output/file1.cs
+        patterns:
+          - "class ClassName"
+          - "public void MethodName"
+          - "using System;"
+          - "[Attribute]"
+          - "// Expected comment"
+      - file: path/to/expected/output/file2.cs
+        patterns:
+          - "interface IInterfaceName"
+          - "Task<ReturnType>"
+    validation:
+      output_check: true   # Always enable - checks files and patterns
+      syntax_check: true   # Enable for C# skills - validates syntax
+      build_check: true    # Enable if code should compile
+      test_check: false    # Enable only if tests should run (requires test project)
+    notes: "Optional notes about this test case - special requirements, known limitations, etc."
+
+  # Example Test Case 2: Edge case or advanced scenario
+  - id: TC-SKILLNAME-002
+    name: Another Test Case
+    priority: medium
+    input:
+      user_request: "Another request with different parameters"
+      context_files: []  # No context files needed
+    expected_outputs:
+      - file: output/path/file.cs
+        patterns:
+          - "Expected pattern 1"
+          - "Expected pattern 2"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true  # Enable if this generates runnable tests
+    notes: "This test case validates edge case X"
+
+  # Example Test Case 3: Component or integration test
+  - id: TC-SKILLNAME-003
+    name: Integration Test Scenario
+    priority: low
+    input:
+      user_request: "Request for integration test scenario"
+      context_files:
+        - existing/code/service.cs
+        - existing/code/repository.cs
+    expected_outputs:
+      - file: tests/ServiceIntegrationTests.cs
+        patterns:
+          - "[Fact]"
+          - "public async Task"
+          - "DbContext"
+    validation:
+      output_check: true
+      syntax_check: true
+      build_check: true
+      test_check: true
+    notes: "Integration test with database dependencies"
+
+# Guidelines for Creating Test Cases:
+#
+# 1. TEST CASE IDs:
+#    - Format: TC-SKILLNAME-NNN
+#    - Use consistent abbreviation for skill name
+#    - Number sequentially starting from 001
+#
+# 2. PRIORITIES:
+#    - high: Critical functionality, must pass before release
+#    - medium: Important features, should investigate failures
+#    - low: Nice-to-have, informational
+#
+# 3. USER REQUESTS:
+#    - Write realistic requests that users would actually send
+#    - Include all necessary context and parameters
+#    - Be specific about expected behavior
+#
+# 4. CONTEXT FILES:
+#    - Use relative paths from project root
+#    - Include all files the skill needs to read
+#    - Leave empty array [] if no context needed
+#
+# 5. EXPECTED OUTPUTS:
+#    - List ALL files the skill should generate
+#    - Use relative paths from workspace root
+#    - Be specific with file paths (not wildcards)
+#
+# 6. PATTERNS:
+#    - Use exact strings that must appear in files
+#    - Include key classes, methods, attributes, using statements
+#    - Don't be too strict (whitespace may vary)
+#    - Test for critical constructs, not entire code blocks
+#    - Examples:
+#      * "class ClassName" - check for class definition
+#      * "[Fact]" - check for xUnit test attribute
+#      * "using System.Linq;" - check for using statement
+#      * "public async Task" - check for async method
+#
+# 7. VALIDATION FLAGS:
+#    - output_check: ALWAYS true (validates files/patterns)
+#    - syntax_check: true for C# skills
+#    - build_check: true if code should compile
+#    - test_check: true ONLY if tests should run (requires test project)
+#
+# 8. VALIDATION GUIDELINES BY SKILL TYPE:
+#
+#    Code Generator Skills:
+#      output_check: true
+#      syntax_check: true
+#      build_check: true
+#      test_check: false (unless generating test projects)
+#
+#    Test Generator Skills:
+#      output_check: true
+#      syntax_check: true
+#      build_check: true
+#      test_check: true (tests must compile AND run)
+#
+#    Refactoring Skills:
+#      output_check: true
+#      syntax_check: true
+#      build_check: true
+#      test_check: true (ensure existing tests still pass)
+#
+#    UI Component Skills:
+#      output_check: true
+#      syntax_check: true
+#      build_check: true
+#      test_check: false (UI needs runtime environment)
+#
+# 9. NOTES:
+#    - Explain the test purpose
+#    - Document special requirements (packages, dependencies)
+#    - Note known limitations or assumptions
+#    - Provide debugging hints if the test commonly fails
+#
+# 10. BEST PRACTICES:
+#     - Start with happy path tests (priority: high)
+#     - Add edge cases incrementally (priority: medium/low)
+#     - Test one thing per test case
+#     - Keep patterns specific but not overly strict
+#     - Document why test_check is disabled if applicable
+#     - Include 2-5 test cases per skill minimum
+#
+# 11. COMMON PATTERNS TO TEST:
+#
+#     For Services:
+#       - "class ServiceName"
+#       - "IServiceInterface"
+#       - "public async Task"
+#       - "private readonly"
+#       - "constructor injection"
+#
+#     For Controllers:
+#       - "[ApiController]"
+#       - "[Route("
+#       - "[HttpGet]"
+#       - "IActionResult"
+#
+#     For Tests:
+#       - "[Fact]"
+#       - "[Theory]"
+#       - "using Xunit"
+#       - "// Arrange"
+#       - "// Act"
+#       - "// Assert"
+#       - "Mock<"
+#       - ".Should()"
+#
+#     For Blazor:
+#       - "@page"
+#       - "@inject"
+#       - "RenderFragment"
+#       - "EventCallback"
+#       - "@code"
+#
+#     For EF Core:
+#       - "DbContext"
+#       - "DbSet<"
+#       - "OnModelCreating"
+#       - "HasKey"
+#       - "HasMany"
+#
+# 12. TROUBLESHOOTING:
+#     - If patterns don't match, check for whitespace differences
+#     - Use simpler patterns (e.g., "class Foo" not "public class Foo : IBar")
+#     - Check file paths are relative to workspace
+#     - Ensure test_check is false if no test project exists
+#     - Review validation script output for detailed errors

@@ -1,0 +1,309 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Buttons
+@using System.ComponentModel.DataAnnotations
+@inject I{EntityName}Service {EntityName}Service
+@inject ILogger<{EntityName}Dialog> Logger
+
+<SfDialog @bind-Visible="@IsVisible"
+          Width="@DialogWidth"
+          MinHeight="400px"
+          IsModal="true"
+          ShowCloseIcon="true"
+          CloseOnEscape="true"
+          CssClass="{EntityNameLower}-dialog">
+    <DialogTemplates>
+        <Header>
+            <div class="dialog-header">
+                <span class="e-icons @HeaderIcon"></span>
+                <span>@DialogTitle</span>
+            </div>
+        </Header>
+        <Content>
+            <div class="dialog-content">
+                @if (IsLoading)
+                {
+                    <div class="text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Error:</strong> @ErrorMessage
+                        <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = string.Empty)"></button>
+                    </div>
+                }
+                else if (Model != null)
+                {
+                    <EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@HandleInvalidSubmit">
+                        <DataAnnotationsValidator />
+
+                        <div class="form-validation-summary">
+                            <ValidationSummary />
+                        </div>
+
+                        <div class="form-container">
+                            <!-- FORM_FIELDS -->
+                        </div>
+
+                        @if (ShowFormButtons)
+                        {
+                            <div class="form-actions mt-4">
+                                <SfButton type="submit"
+                                         IsPrimary="true"
+                                         IconCss="e-icons e-check"
+                                         Disabled="@IsSaving"
+                                         CssClass="e-success">
+                                    @(IsSaving ? "Saving..." : "Save")
+                                </SfButton>
+                                <SfButton type="button"
+                                         IconCss="e-icons e-close"
+                                         OnClick="@Cancel"
+                                         Disabled="@IsSaving"
+                                         CssClass="ms-2">
+                                    Cancel
+                                </SfButton>
+                            </div>
+                        }
+                    </EditForm>
+                }
+            </div>
+        </Content>
+    </DialogTemplates>
+    @if (!ShowFormButtons)
+    {
+        <DialogButtons>
+            <DialogButton Content="@SaveButtonText"
+                         OnClick="@SubmitForm"
+                         IsPrimary="true"
+                         Disabled="@IsSaving"
+                         CssClass="e-success" />
+            <DialogButton Content="Cancel"
+                         OnClick="@Cancel"
+                         Disabled="@IsSaving" />
+        </DialogButtons>
+    }
+    <DialogAnimationSettings Effect="@DialogEffect.Zoom" Duration="400" />
+</SfDialog>
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter]
+    public {EntityName}? Model { get; set; }
+
+    [Parameter]
+    public EventCallback<{EntityName}> OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public string DialogWidth { get; set; } = "600px";
+
+    [Parameter]
+    public bool ShowFormButtons { get; set; } = false;
+
+    [Parameter]
+    public DialogMode Mode { get; set; } = DialogMode.Create;
+
+    private bool IsLoading = false;
+    private bool IsSaving = false;
+    private string ErrorMessage = string.Empty;
+
+    private string DialogTitle => Mode switch
+    {
+        DialogMode.Create => $"Create {EntityName}",
+        DialogMode.Edit => $"Edit {EntityName}",
+        DialogMode.View => $"View {EntityName}",
+        _ => $"{EntityName}"
+    };
+
+    private string HeaderIcon => Mode switch
+    {
+        DialogMode.Create => "e-add",
+        DialogMode.Edit => "e-edit",
+        DialogMode.View => "e-eye",
+        _ => "e-info"
+    };
+
+    private string SaveButtonText => IsSaving
+        ? "Saving..."
+        : (Mode == DialogMode.Create ? "Create" : "Update");
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && Model == null)
+        {
+            Model = new {EntityName}();
+        }
+    }
+
+    /// <summary>
+    /// Handles valid form submission
+    /// </summary>
+    private async Task HandleValidSubmit()
+    {
+        if (Model == null) return;
+
+        IsSaving = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            if (Mode == DialogMode.Create)
+            {
+                Logger.LogInformation("Creating new {EntityNameLower}...");
+                await {EntityName}Service.CreateAsync(Model);
+                Logger.LogInformation("{EntityName} created successfully with ID: {{Id}}", Model.{PrimaryKey});
+            }
+            else if (Mode == DialogMode.Edit)
+            {
+                Logger.LogInformation("Updating {EntityNameLower} with ID: {{Id}}", Model.{PrimaryKey});
+                await {EntityName}Service.UpdateAsync(Model);
+                Logger.LogInformation("{EntityName} updated successfully");
+            }
+
+            await OnSave.InvokeAsync(Model);
+            await CloseDialog();
+        }
+        catch (ValidationException vex)
+        {
+            ErrorMessage = $"Validation error: {vex.Message}";
+            Logger.LogWarning(vex, "Validation error for {EntityNameLower}");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to save {EntityNameLower}: {ex.Message}";
+            Logger.LogError(ex, "Error saving {EntityNameLower}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles invalid form submission
+    /// </summary>
+    private void HandleInvalidSubmit()
+    {
+        ErrorMessage = "Please correct the validation errors before saving.";
+        Logger.LogWarning("Form validation failed for {EntityNameLower}");
+    }
+
+    /// <summary>
+    /// Submits the form programmatically (called by dialog button)
+    /// </summary>
+    private async Task SubmitForm()
+    {
+        await HandleValidSubmit();
+    }
+
+    /// <summary>
+    /// Cancels the dialog and closes it
+    /// </summary>
+    private async Task Cancel()
+    {
+        Logger.LogInformation("Dialog cancelled for {EntityNameLower}");
+        await OnCancel.InvokeAsync();
+        await CloseDialog();
+    }
+
+    /// <summary>
+    /// Closes the dialog and resets state
+    /// </summary>
+    private async Task CloseDialog()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        ErrorMessage = string.Empty;
+        IsSaving = false;
+    }
+
+    /// <summary>
+    /// Opens the dialog with a specific entity for editing
+    /// </summary>
+    public async Task OpenForEditAsync({EntityName} entity)
+    {
+        Mode = DialogMode.Edit;
+        Model = entity;
+        IsVisible = true;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        Logger.LogInformation("Dialog opened for editing {EntityNameLower} with ID: {{Id}}", entity.{PrimaryKey});
+    }
+
+    /// <summary>
+    /// Opens the dialog for creating a new entity
+    /// </summary>
+    public async Task OpenForCreateAsync()
+    {
+        Mode = DialogMode.Create;
+        Model = new {EntityName}();
+        IsVisible = true;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        Logger.LogInformation("Dialog opened for creating new {EntityNameLower}");
+    }
+
+    /// <summary>
+    /// Opens the dialog for viewing an entity (read-only)
+    /// </summary>
+    public async Task OpenForViewAsync({EntityName} entity)
+    {
+        Mode = DialogMode.View;
+        Model = entity;
+        IsVisible = true;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        Logger.LogInformation("Dialog opened for viewing {EntityNameLower} with ID: {{Id}}", entity.{PrimaryKey});
+    }
+
+    /// <summary>
+    /// Loads an entity by ID
+    /// </summary>
+    public async Task LoadEntityAsync({PrimaryKeyType} id)
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            Logger.LogInformation("Loading {EntityNameLower} with ID: {{Id}}", id);
+            Model = await {EntityName}Service.GetByIdAsync(id);
+
+            if (Model == null)
+            {
+                ErrorMessage = $"{EntityName} not found.";
+                Logger.LogWarning("{EntityName} with ID {{Id}} not found", id);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load {EntityNameLower}: {ex.Message}";
+            Logger.LogError(ex, "Error loading {EntityNameLower} with ID: {{Id}}", id);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}
+
+@code {
+    /// <summary>
+    /// Dialog mode enumeration
+    /// </summary>
+    public enum DialogMode
+    {
+        Create,
+        Edit,
+        View
+    }
+}
