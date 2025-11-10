@@ -15,6 +15,8 @@ const {
   getConversation,
   getConversations,
   getVisibleConversationsOnly,
+  getConversationsForProject,
+  getAllConversationsAcrossAllProjects,
   markConversationHidden,
   permanentlyDeleteConversation,
   saveMessage,
@@ -27,8 +29,37 @@ const {
   getPrompt,
   getPromptName,
   getPrompts,
-  deletePrompt
+  deletePrompt,
+  // API Configuration functions
+  createApiConfig,
+  updateApiConfigById,
+  getApiConfig,
+  getApiConfigByNameValue,
+  getApiConfigs,
+  getDefaultApiConfigValue,
+  deleteApiConfig,
+  resolveApiKey,
+  // Project functions
+  createProject,
+  updateProjectById,
+  updateProjectAccess,
+  getProject,
+  getProjectByPathValue,
+  getProjects,
+  getProjectStats,
+  deleteProject,
+  getEffectiveApiConfig,
+  // Context Preset functions
+  createContextPreset,
+  updateContextPresetById,
+  getContextPreset,
+  getPresetsForProject,
+  getDefaultPreset,
+  deleteContextPreset
 } = require('./database');
+
+// Project detection module
+const { detectProject } = require('./projectDetector');
 
 const app = express();
 app.use(cors());
@@ -37,10 +68,13 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: '*', // Allow all origins in development
     methods: ['GET', 'POST']
   }
 });
+
+// Track active Claude CLI processes per socket
+const activeProcesses = new Map();
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -56,8 +90,9 @@ io.on('connection', (socket) => {
     const executionPath = getSettingValue('CLI_ROOT', process.cwd());
     const cliCommand = getSettingValue('CLI_COMMAND', 'claude');
     const cliArgs = getSettingValue('CLI_ARGS', 'chat');
+    const skipPermissions = getSettingValue('SKIP_PERMISSIONS', 'false') === 'true';
 
-    console.log('Using CLI settings:', { executionPath, cliCommand, cliArgs });
+    console.log('Using CLI settings:', { executionPath, cliCommand, cliArgs, skipPermissions });
 
     // Execute Claude CLI command with settings
     const args = cliArgs ? cliArgs.split(' ') : [];
@@ -68,6 +103,12 @@ io.on('connection', (socket) => {
     }
     if (!args.includes('--output-format')) {
       args.push('--output-format', 'json');
+    }
+
+    // Add auto-approval flag if enabled
+    if (skipPermissions && !args.includes('--dangerously-skip-permissions')) {
+      args.push('--dangerously-skip-permissions');
+      console.log('Auto-approval enabled: skipping permissions');
     }
 
     // Add model parameter if provided
@@ -82,6 +123,9 @@ io.on('connection', (socket) => {
       shell: true,
       cwd: executionPath
     });
+
+    // Store the active process for this socket
+    activeProcesses.set(socket.id, claude);
 
     let response = '';
     let errorOutput = '';
@@ -103,20 +147,30 @@ io.on('connection', (socket) => {
       const text = chunk.toString();
       response += text;
       console.log('Claude output:', text);
+
+      // Emit real-time activity updates to frontend
+      socket.emit('activity-update', { chunk: text, type: 'stdout' });
     });
 
     claude.stderr.on('data', (chunk) => {
       errorOutput += chunk.toString();
       console.error('Claude error:', chunk.toString());
+
+      // Emit real-time activity updates to frontend
+      socket.emit('activity-update', { chunk: chunk.toString(), type: 'stderr' });
     });
 
     claude.on('close', (code) => {
       const durationMs = Date.now() - startTime;
       console.log('Claude process exited with code:', code);
 
-      let actualResponse = response.trim();
+      // Remove from active processes
+      activeProcesses.delete(socket.id);
 
-      // Parse JSON response to extract session_id and result
+      let actualResponse = response.trim();
+      let tokenData = null;
+
+      // Parse JSON response to extract session_id, result, and token usage
       try {
         const jsonResponse = JSON.parse(response);
         if (jsonResponse.session_id) {
@@ -125,6 +179,20 @@ io.on('connection', (socket) => {
         }
         if (jsonResponse.result) {
           actualResponse = jsonResponse.result;
+        }
+
+        // Extract token usage data
+        if (jsonResponse.usage || jsonResponse.modelUsage || jsonResponse.total_cost_usd) {
+          tokenData = {
+            inputTokens: jsonResponse.usage?.input_tokens || 0,
+            outputTokens: jsonResponse.usage?.output_tokens || 0,
+            cacheCreationTokens: jsonResponse.usage?.cache_creation_input_tokens || 0,
+            cacheReadTokens: jsonResponse.usage?.cache_read_input_tokens || 0,
+            totalCostUsd: jsonResponse.total_cost_usd || 0,
+            modelUsage: jsonResponse.modelUsage || null,
+            durationMs: jsonResponse.duration_ms || durationMs
+          };
+          console.log('Token data:', tokenData);
         }
       } catch (parseErr) {
         // If not JSON, use response as-is
@@ -153,10 +221,56 @@ io.on('connection', (socket) => {
       }
 
       if (code === 0 && actualResponse) {
-        socket.emit('response', { content: actualResponse, sessionId: sessionId });
+        socket.emit('response', { content: actualResponse, sessionId: sessionId, tokenData: tokenData });
       } else {
+        // Check if there's an API error in the JSON response
+        let apiError = null;
+        try {
+          const jsonResponse = JSON.parse(response);
+          if (jsonResponse.is_error && jsonResponse.result) {
+            apiError = jsonResponse.result;
+          }
+        } catch (e) {
+          // Not JSON or no API error
+        }
+
+        let errorMessage = '';
+
+        if (apiError) {
+          // Show API error directly
+          errorMessage = '❌ **Claude API Error**\n\n';
+          errorMessage += apiError;
+          errorMessage += '\n\n💡 **This is an API error from Claude.** Check the model name and your API configuration.';
+        } else {
+          // Provide detailed error information
+          errorMessage = '❌ **Claude CLI Error**\n\n';
+          errorMessage += `**Exit Code:** ${code}\n\n`;
+          errorMessage += `**Command:** \`${cliCommand} ${args.join(' ')}\`\n\n`;
+          errorMessage += `**Working Directory:** ${executionPath}\n\n`;
+
+          if (errorOutput) {
+            errorMessage += `**Error Output (stderr):**\n\`\`\`\n${errorOutput}\n\`\`\`\n\n`;
+          }
+
+          if (response && response.trim() && !apiError) {
+            errorMessage += `**Partial Output (stdout):**\n\`\`\`\n${response}\n\`\`\`\n\n`;
+          }
+
+          if (!errorOutput && !response) {
+            errorMessage += '**No output captured from CLI process.**\n\n';
+          }
+
+          errorMessage += '💡 **Troubleshooting:**\n';
+          errorMessage += '- Verify Claude CLI is installed and in PATH\n';
+          errorMessage += '- Check that your API key is configured (`claude config`)\n';
+          errorMessage += '- Try running the command directly in your terminal';
+        }
+
         socket.emit('error', {
-          error: errorOutput || 'Failed to get response from Claude CLI'
+          error: errorMessage,
+          exitCode: code,
+          stderr: errorOutput,
+          stdout: response
         });
       }
     });
@@ -185,14 +299,48 @@ io.on('connection', (socket) => {
         console.error('Failed to log CLI call error to database:', dbErr);
       }
 
+      // Provide detailed error information for spawn failures
+      let errorMessage = '❌ **Failed to Start Claude CLI**\n\n';
+      errorMessage += `**Error:** ${err.message}\n\n`;
+      errorMessage += `**Command:** \`${cliCommand} ${args.join(' ')}\`\n\n`;
+      errorMessage += `**Working Directory:** ${executionPath}\n\n`;
+      errorMessage += '💡 **Troubleshooting:**\n';
+      errorMessage += '- Ensure Claude CLI is installed: `npm install -g @anthropic-ai/claude-cli`\n';
+      errorMessage += '- Verify it is in your PATH: `where claude` (Windows) or `which claude` (Mac/Linux)\n';
+      errorMessage += '- Check that your API key is configured: `claude config`\n';
+      errorMessage += '- Try restarting your terminal or system\n';
+      errorMessage += '- Check that Node.js has permission to execute the CLI';
+
       socket.emit('error', {
-        error: `Failed to start Claude CLI: ${err.message}. Make sure Claude CLI is installed and available in PATH.`
+        error: errorMessage,
+        exitCode: -1,
+        stderr: err.message
       });
     });
   });
 
+  socket.on('cancel', () => {
+    console.log('Cancel request received from:', socket.id);
+    const process = activeProcesses.get(socket.id);
+    if (process) {
+      console.log('Killing active Claude CLI process');
+      process.kill('SIGTERM');
+      activeProcesses.delete(socket.id);
+      socket.emit('cancelled', { message: 'Command cancelled' });
+    } else {
+      console.log('No active process to cancel');
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    // Kill any active process when client disconnects
+    const process = activeProcesses.get(socket.id);
+    if (process) {
+      console.log('Killing active process due to disconnect');
+      process.kill('SIGTERM');
+      activeProcesses.delete(socket.id);
+    }
   });
 });
 
@@ -202,7 +350,8 @@ io.on('connection', (socket) => {
 // Get visible conversations only (for user UI) - must come before /:id
 app.get('/api/conversations/visible', (req, res) => {
   try {
-    const conversations = getVisibleConversationsOnly();
+    const projectId = req.query.project_id ? parseInt(req.query.project_id) : null;
+    const conversations = getVisibleConversationsOnly(projectId);
     res.json(conversations);
   } catch (err) {
     console.error('Error fetching visible conversations:', err);
@@ -236,9 +385,10 @@ app.get('/api/conversations/:id', (req, res) => {
 
 app.post('/api/conversations', (req, res) => {
   try {
-    const { title, selectedFiles, model } = req.body;
-    const id = createConversation(title, selectedFiles, model);
-    res.json({ id, title, selectedFiles, model });
+    const { title, selectedFiles, model, project_id } = req.body;
+    const projectId = project_id ? parseInt(project_id) : null;
+    const id = createConversation(title, selectedFiles, model, projectId);
+    res.json({ id, title, selectedFiles, model, project_id: projectId });
   } catch (err) {
     console.error('Error creating conversation:', err);
     res.status(500).json({ error: 'Failed to create conversation' });
@@ -269,9 +419,9 @@ app.get('/api/conversations/:id/messages', (req, res) => {
 
 app.post('/api/conversations/:id/messages', (req, res) => {
   try {
-    const { role, content } = req.body;
-    const messageId = saveMessage(req.params.id, role, content);
-    res.json({ id: messageId, conversation_id: req.params.id, role, content });
+    const { role, content, tokenData } = req.body;
+    const messageId = saveMessage(req.params.id, role, content, tokenData);
+    res.json({ id: messageId, conversation_id: req.params.id, role, content, tokenData });
   } catch (err) {
     console.error('Error saving message:', err);
     res.status(500).json({ error: 'Failed to save message' });
@@ -359,6 +509,21 @@ app.put('/api/settings/:key', (req, res) => {
     }
     setSetting(req.params.key, value);
     res.json({ success: true, key: req.params.key, value });
+  } catch (err) {
+    console.error('Error updating setting:', err);
+    res.status(500).json({ error: 'Failed to update setting' });
+  }
+});
+
+// POST endpoint for settings (same as PUT, for compatibility)
+app.post('/api/settings', (req, res) => {
+  try {
+    const { key, value } = req.body;
+    if (!key || !value) {
+      return res.status(400).json({ error: 'Key and value are required' });
+    }
+    setSetting(key, value);
+    res.json({ success: true, key, value });
   } catch (err) {
     console.error('Error updating setting:', err);
     res.status(500).json({ error: 'Failed to update setting' });
@@ -854,6 +1019,819 @@ app.get('/api/slash-commands', (req, res) => {
   } catch (err) {
     console.error('Error fetching slash commands:', err);
     res.status(500).json({ error: 'Failed to fetch slash commands' });
+  }
+});
+
+// ============================================================================
+// Project Management API Endpoints
+// ============================================================================
+
+// Get all projects
+app.get('/api/projects', (req, res) => {
+  try {
+    const { favorite, tag, limit, offset } = req.query;
+    let projects = getProjects(favorite === 'true');
+
+    // Filter by tag if provided
+    if (tag) {
+      projects = projects.filter(p => {
+        if (!p.tags) return false;
+        const tags = JSON.parse(p.tags);
+        return tags.includes(tag);
+      });
+    }
+
+    const total = projects.length;
+
+    // Apply pagination
+    const limitNum = limit ? parseInt(limit) : null;
+    const offsetNum = offset ? parseInt(offset) : 0;
+    if (limitNum) {
+      projects = projects.slice(offsetNum, offsetNum + limitNum);
+    }
+
+    res.json({
+      data: projects,
+      meta: {
+        total,
+        count: projects.length,
+        limit: limitNum,
+        offset: offsetNum
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching projects:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch projects',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get single project
+app.get('/api/projects/:id', (req, res) => {
+  try {
+    const project = getProjectStats(req.params.id);
+    if (!project) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Project not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+    res.json({ data: project });
+  } catch (err) {
+    console.error('Error fetching project:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch project',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Create new project
+app.post('/api/projects', (req, res) => {
+  try {
+    const { name, path: projectPath, description, color, tags, isFavorite, apiConfigId, settings, metadata } = req.body;
+
+    if (!name || !projectPath) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: {
+            name: name ? null : 'Name is required',
+            path: projectPath ? null : 'Path is required'
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Check if project with this path already exists
+    const existing = getProjectByPathValue(projectPath);
+    if (existing) {
+      return res.status(409).json({
+        error: {
+          status: 409,
+          code: 'DUPLICATE_PROJECT',
+          message: 'A project with this path already exists',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const id = createProject({
+      name,
+      path: projectPath,
+      description,
+      color,
+      tags,
+      isFavorite,
+      apiConfigId,
+      settings,
+      metadata
+    });
+
+    const newProject = getProject(id);
+    res.status(201).json({ data: newProject });
+  } catch (err) {
+    console.error('Error creating project:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to create project',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Update project
+app.patch('/api/projects/:id', (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Project not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const { name, description, color, tags, isFavorite, apiConfigId, settings, metadata, lastAccessed } = req.body;
+
+    // If lastAccessed is being updated, use the special update function
+    if (lastAccessed) {
+      updateProjectAccess(req.params.id);
+    }
+
+    // Update other fields if provided
+    if (name || description || color || tags !== undefined || isFavorite !== undefined ||
+        apiConfigId !== undefined || settings !== undefined || metadata !== undefined) {
+      updateProjectById(req.params.id, {
+        name: name || project.name,
+        description: description !== undefined ? description : project.description,
+        color: color || project.color,
+        tags: tags !== undefined ? tags : (project.tags ? JSON.parse(project.tags) : null),
+        isFavorite: isFavorite !== undefined ? isFavorite : project.is_favorite,
+        apiConfigId: apiConfigId !== undefined ? apiConfigId : project.api_config_id,
+        settings: settings !== undefined ? settings : (project.settings ? JSON.parse(project.settings) : null),
+        metadata: metadata !== undefined ? metadata : (project.metadata ? JSON.parse(project.metadata) : null)
+      });
+    }
+
+    const updatedProject = getProject(req.params.id);
+    res.json({ data: updatedProject });
+  } catch (err) {
+    console.error('Error updating project:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to update project',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Delete project
+app.delete('/api/projects/:id', (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Project not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    deleteProject(req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting project:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to delete project',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// ============================================================================
+// Context Preset API Endpoints
+// ============================================================================
+
+// Get all presets for a project
+app.get('/api/projects/:projectId/presets', (req, res) => {
+  try {
+    const presets = getPresetsForProject(req.params.projectId);
+    res.json({ data: presets });
+  } catch (err) {
+    console.error('Error fetching context presets:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch context presets',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get single preset
+app.get('/api/projects/:projectId/presets/:id', (req, res) => {
+  try {
+    const preset = getContextPreset(req.params.id);
+    if (!preset || preset.project_id != req.params.projectId) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Context preset not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+    res.json({ data: preset });
+  } catch (err) {
+    console.error('Error fetching context preset:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch context preset',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Create context preset
+app.post('/api/projects/:projectId/presets', (req, res) => {
+  try {
+    const { name, description, filePatterns, excludePatterns, explicitFiles, isDefault } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          code: 'VALIDATION_ERROR',
+          message: 'Name is required',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const id = createContextPreset({
+      projectId: req.params.projectId,
+      name,
+      description,
+      filePatterns,
+      excludePatterns,
+      explicitFiles,
+      isDefault
+    });
+
+    const newPreset = getContextPreset(id);
+    res.status(201).json({ data: newPreset });
+  } catch (err) {
+    console.error('Error creating context preset:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to create context preset',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Update context preset
+app.patch('/api/projects/:projectId/presets/:id', (req, res) => {
+  try {
+    const preset = getContextPreset(req.params.id);
+    if (!preset || preset.project_id != req.params.projectId) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Context preset not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const { name, description, filePatterns, excludePatterns, explicitFiles, isDefault } = req.body;
+
+    updateContextPresetById(req.params.id, {
+      name: name || preset.name,
+      description: description !== undefined ? description : preset.description,
+      filePatterns: filePatterns !== undefined ? filePatterns : (preset.file_patterns ? JSON.parse(preset.file_patterns) : null),
+      excludePatterns: excludePatterns !== undefined ? excludePatterns : (preset.exclude_patterns ? JSON.parse(preset.exclude_patterns) : null),
+      explicitFiles: explicitFiles !== undefined ? explicitFiles : (preset.explicit_files ? JSON.parse(preset.explicit_files) : null),
+      isDefault: isDefault !== undefined ? isDefault : preset.is_default
+    });
+
+    const updatedPreset = getContextPreset(req.params.id);
+    res.json({ data: updatedPreset });
+  } catch (err) {
+    console.error('Error updating context preset:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to update context preset',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Delete context preset
+app.delete('/api/projects/:projectId/presets/:id', (req, res) => {
+  try {
+    const preset = getContextPreset(req.params.id);
+    if (!preset || preset.project_id != req.params.projectId) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Context preset not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    deleteContextPreset(req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting context preset:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to delete context preset',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get resolved files for a preset (computed sub-resource)
+app.get('/api/projects/:projectId/presets/:id/files', (req, res) => {
+  try {
+    const preset = getContextPreset(req.params.id);
+    if (!preset || preset.project_id != req.params.projectId) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Context preset not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const project = getProject(req.params.projectId);
+    if (!project) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'Project not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Parse preset patterns
+    const filePatterns = preset.file_patterns ? JSON.parse(preset.file_patterns) : [];
+    const excludePatterns = preset.exclude_patterns ? JSON.parse(preset.exclude_patterns) : [];
+    const explicitFiles = preset.explicit_files ? JSON.parse(preset.explicit_files) : [];
+
+    // Resolve files using glob patterns
+    const glob = require('glob');
+    const resolvedFiles = new Set(explicitFiles);
+
+    // Add files matching patterns
+    for (const pattern of filePatterns) {
+      const matches = glob.sync(pattern, {
+        cwd: project.path,
+        ignore: excludePatterns,
+        nodir: true
+      });
+      matches.forEach(file => resolvedFiles.add(file));
+    }
+
+    res.json({
+      data: {
+        preset_id: preset.id,
+        preset_name: preset.name,
+        files: Array.from(resolvedFiles),
+        count: resolvedFiles.size
+      }
+    });
+  } catch (err) {
+    console.error('Error resolving preset files:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to resolve preset files',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// ============================================================================
+// API Configuration Endpoints
+// ============================================================================
+
+// Get all API configurations
+app.get('/api/api-configs', (req, res) => {
+  try {
+    const { active } = req.query;
+    const configs = getApiConfigs(active === 'true');
+
+    // Never return api_key_value in responses - return status instead
+    const sanitized = configs.map(config => {
+      const { api_key_value, ...safe } = config;
+      return {
+        ...safe,
+        api_key_status: api_key_value ? 'configured' : 'not_configured'
+      };
+    });
+
+    res.json({ data: sanitized });
+  } catch (err) {
+    console.error('Error fetching API configurations:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch API configurations',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get single API configuration
+app.get('/api/api-configs/:id', (req, res) => {
+  try {
+    const config = getApiConfig(req.params.id);
+    if (!config) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'API configuration not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Never return api_key_value
+    const { api_key_value, ...safe } = config;
+    res.json({
+      data: {
+        ...safe,
+        api_key_status: api_key_value ? 'configured' : 'not_configured'
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching API configuration:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch API configuration',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Create API configuration
+app.post('/api/api-configs', (req, res) => {
+  try {
+    const { name, provider, apiUrl, apiKeySource, apiKeyValue, authType, region, models,
+            modelRefreshStrategy, connectionTimeout, maxRetries, extraHeaders, isActive, isDefault } = req.body;
+
+    if (!name || !provider || !apiUrl || !apiKeySource) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          code: 'VALIDATION_ERROR',
+          message: 'Required fields missing',
+          details: {
+            name: name ? null : 'Required',
+            provider: provider ? null : 'Required',
+            apiUrl: apiUrl ? null : 'Required',
+            apiKeySource: apiKeySource ? null : 'Required'
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const id = createApiConfig({
+      name, provider, apiUrl, apiKeySource, apiKeyValue, authType, region, models,
+      modelRefreshStrategy, connectionTimeout, maxRetries, extraHeaders, isActive, isDefault
+    });
+
+    const newConfig = getApiConfig(id);
+    const { api_key_value, ...safe } = newConfig;
+
+    res.status(201).json({
+      data: {
+        ...safe,
+        api_key_status: api_key_value ? 'configured' : 'not_configured'
+      }
+    });
+  } catch (err) {
+    console.error('Error creating API configuration:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to create API configuration',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Update API configuration
+app.patch('/api/api-configs/:id', (req, res) => {
+  try {
+    const config = getApiConfig(req.params.id);
+    if (!config) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'API configuration not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const { name, provider, apiUrl, apiKeySource, apiKeyValue, authType, region, models,
+            modelRefreshStrategy, connectionTimeout, maxRetries, extraHeaders, isActive, isDefault } = req.body;
+
+    updateApiConfigById(req.params.id, {
+      name: name || config.name,
+      provider: provider || config.provider,
+      apiUrl: apiUrl || config.api_url,
+      apiKeySource: apiKeySource || config.api_key_source,
+      apiKeyValue: apiKeyValue !== undefined ? apiKeyValue : config.api_key_value,
+      authType: authType || config.auth_type,
+      region: region !== undefined ? region : config.region,
+      models: models !== undefined ? models : (config.models ? JSON.parse(config.models) : null),
+      modelRefreshStrategy: modelRefreshStrategy || config.model_refresh_strategy,
+      connectionTimeout: connectionTimeout || config.connection_timeout,
+      maxRetries: maxRetries || config.max_retries,
+      extraHeaders: extraHeaders !== undefined ? extraHeaders : (config.extra_headers ? JSON.parse(config.extra_headers) : null),
+      isActive: isActive !== undefined ? isActive : config.is_active,
+      isDefault: isDefault !== undefined ? isDefault : config.is_default
+    });
+
+    const updatedConfig = getApiConfig(req.params.id);
+    const { api_key_value, ...safe } = updatedConfig;
+
+    res.json({
+      data: {
+        ...safe,
+        api_key_status: api_key_value ? 'configured' : 'not_configured'
+      }
+    });
+  } catch (err) {
+    console.error('Error updating API configuration:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to update API configuration',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Delete API configuration
+app.delete('/api/api-configs/:id', (req, res) => {
+  try {
+    const config = getApiConfig(req.params.id);
+    if (!config) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'API configuration not found',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    deleteApiConfig(req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting API configuration:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to delete API configuration',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get effective API configuration for a project
+app.get('/api/projects/:projectId/api-config', (req, res) => {
+  try {
+    const config = getEffectiveApiConfig(req.params.projectId);
+    if (!config) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'NOT_FOUND',
+          message: 'No API configuration found for this project',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const { api_key_value, ...safe } = config;
+    res.json({
+      data: {
+        ...safe,
+        api_key_status: api_key_value ? 'configured' : 'not_configured'
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching effective API configuration:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch API configuration',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// ============================================================================
+// Project Detection API
+// ============================================================================
+
+// Detect project type and metadata from filesystem path
+app.post('/api/project-detections', (req, res) => {
+  try {
+    const { path: projectPath } = req.body;
+
+    // Validate path is provided
+    if (!projectPath) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          code: 'VALIDATION_ERROR',
+          message: 'Path is required',
+          details: {
+            path: 'Path parameter is required'
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Security: validate path exists and is accessible
+    if (!fs.existsSync(projectPath)) {
+      return res.status(404).json({
+        error: {
+          status: 404,
+          code: 'PATH_NOT_FOUND',
+          message: 'Project path does not exist',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Check if path is actually a directory
+    const stats = fs.statSync(projectPath);
+    if (!stats.isDirectory()) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          code: 'INVALID_PATH',
+          message: 'Path must be a directory',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Perform project detection
+    const detection = detectProject(projectPath);
+
+    // Check if detection failed
+    if (!detection.detected) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          code: 'DETECTION_FAILED',
+          message: detection.error || 'Failed to detect project',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    res.status(201).json({ data: detection });
+  } catch (err) {
+    console.error('Error detecting project:', err);
+    res.status(500).json({
+      error: {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to detect project',
+        details: err.message,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Folder browsing endpoint for folder picker
+app.get('/api/browse-folders', (req, res) => {
+  try {
+    const currentPath = req.query.path || require('os').homedir();
+
+    // Security: prevent path traversal attacks
+    const resolvedPath = path.resolve(currentPath);
+
+    // Check if path exists and is accessible
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(404).json({ error: 'Path not found' });
+    }
+
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isDirectory()) {
+      return res.status(400).json({ error: 'Path is not a directory' });
+    }
+
+    // Read directory contents
+    const items = fs.readdirSync(resolvedPath, { withFileTypes: true });
+
+    const folders = items
+      .filter(item => item.isDirectory() && !item.name.startsWith('.'))
+      .map(item => ({
+        name: item.name,
+        path: path.join(resolvedPath, item.name)
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Get parent directory
+    const parentPath = path.dirname(resolvedPath);
+    const isRoot = resolvedPath === parentPath;
+
+    res.json({
+      currentPath: resolvedPath,
+      parentPath: isRoot ? null : parentPath,
+      folders: folders
+    });
+  } catch (err) {
+    console.error('Error browsing folders:', err);
+    res.status(500).json({ error: 'Failed to browse folders', details: err.message });
   }
 });
 

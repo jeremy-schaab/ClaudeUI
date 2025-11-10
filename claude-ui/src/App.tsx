@@ -11,12 +11,26 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import remarkGfm from 'remark-gfm'
 import Editor, { DiffEditor } from '@monaco-editor/react'
+import ProjectSwitcher from './components/ProjectSwitcher'
+import ProjectManagement from './components/ProjectManagement'
+import ContextPresetSelector from './components/ContextPresetSelector'
+
+interface TokenData {
+  inputTokens?: number
+  outputTokens?: number
+  cacheCreationTokens?: number
+  cacheReadTokens?: number
+  totalCostUsd?: number
+  modelUsage?: any
+  durationMs?: number
+}
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  tokenData?: TokenData
 }
 
 interface RecentChat {
@@ -33,12 +47,23 @@ interface FileNode {
   children?: FileNode[]
 }
 
+interface Project {
+  id?: number
+  name: string
+  path: string
+  color: string
+  description?: string
+  tags?: string
+  is_favorite?: boolean
+  last_accessed?: string
+}
+
 const MODELS = [
+  { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', description: 'Smart, efficient model for everyday use (RECOMMENDED)' },
   { id: 'claude-opus-4-20250514', name: 'Opus 4', description: 'Powerful, large model for complex challenges' },
-  { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', description: 'Smart, efficient model for everyday use' },
   { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4', description: 'Balanced performance and speed' },
-  { id: 'claude-haiku-4-20250514', name: 'Haiku 4', description: 'Fast, lightweight model for simple tasks' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Haiku 3.5', description: 'Fastest available model (currently released)' }
+  { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', description: 'Fast and intelligent, best value' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Haiku 3.5', description: 'Previous generation fast model' }
 ]
 
 function ChatView() {
@@ -75,9 +100,17 @@ function ChatView() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [fileSummary, setFileSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [activityLog, setActivityLog] = useState<string[]>([])
+  const [showActivityLog, setShowActivityLog] = useState(true)
   const [showHtmlPreview, setShowHtmlPreview] = useState(false)
   const [processedHtml, setProcessedHtml] = useState<string | null>(null)
   const [isLoadingCss, setIsLoadingCss] = useState(false)
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
+  const [showProjectManagement, setShowProjectManagement] = useState(false)
+  const [showTokenStats, setShowTokenStats] = useState(false)
+  const [skipPermissions, setSkipPermissions] = useState(false)
+  const [editingChatId, setEditingChatId] = useState<string | null>(null)
+  const [editingChatTitle, setEditingChatTitle] = useState('')
   const conversationIdRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -87,38 +120,49 @@ function ChatView() {
     conversationIdRef.current = currentConversationId
   }, [currentConversationId])
 
-  // Load default model from settings on mount
+  // Load default model and skip permissions setting from settings on mount
   useEffect(() => {
-    const loadDefaultModel = async () => {
+    const loadSettings = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/settings/DEFAULT_MODEL')
-        if (response.data.value) {
-          setSelectedModel(response.data.value)
+        const modelResponse = await axios.get('http://localhost:3001/api/settings/DEFAULT_MODEL')
+        if (modelResponse.data.value) {
+          setSelectedModel(modelResponse.data.value)
         }
       } catch (err) {
         console.error('Failed to load default model:', err)
       }
-    }
-    loadDefaultModel()
-  }, [])
 
-  // Load recent conversations on mount (only visible ones)
-  useEffect(() => {
-    const loadRecentConversations = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/conversations/visible')
-        const conversations = response.data.slice(0, 20).map((conv: any) => ({
-          id: conv.id.toString(),
-          title: conv.title || 'Untitled',
-          timestamp: new Date(conv.updated_at)
-        }))
-        setRecentChats(conversations)
+        const skipPermsResponse = await axios.get('http://localhost:3001/api/settings/SKIP_PERMISSIONS')
+        if (skipPermsResponse.data.value) {
+          setSkipPermissions(skipPermsResponse.data.value === 'true')
+        }
       } catch (err) {
-        console.error('Failed to load recent conversations:', err)
+        console.error('Failed to load skip permissions setting:', err)
       }
     }
-    loadRecentConversations()
+    loadSettings()
   }, [])
+
+  // Load recent conversations (filtered by project if provided)
+  const loadRecentConversations = async (projectId?: number | null) => {
+    try {
+      const url = projectId
+        ? `http://localhost:3001/api/conversations/visible?project_id=${projectId}`
+        : 'http://localhost:3001/api/conversations/visible'
+      const response = await axios.get(url)
+      const conversations = response.data.slice(0, 20).map((conv: any) => ({
+        id: conv.id.toString(),
+        title: conv.title || 'Untitled',
+        timestamp: new Date(conv.updated_at)
+      }))
+      setRecentChats(conversations)
+    } catch (err) {
+      console.error('Failed to load recent conversations:', err)
+    }
+  }
+
+  // Conversations will be loaded by loadDefaultProject() on mount
 
   // Load file tree
   const loadFileTree = async () => {
@@ -328,6 +372,8 @@ function ChatView() {
       'py': 'python',
       'java': 'java',
       'cs': 'csharp',
+      'cshtml': 'razor',
+      'razor': 'razor',
       'cpp': 'cpp',
       'c': 'c',
       'go': 'go',
@@ -340,7 +386,9 @@ function ChatView() {
       'xml': 'xml',
       'sql': 'sql',
       'ps1': 'powershell',
-      'razor': 'razor'
+      'vb': 'vb',
+      'bat': 'bat',
+      'cmd': 'bat'
     }
     return languageMap[ext] || 'plaintext'
   }
@@ -425,24 +473,26 @@ function ChatView() {
       console.log('Disconnected from server')
     })
 
-    socketRef.current.on('response', async (data: { content: string }) => {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: data.content,
-          timestamp: new Date()
-        }
-      ])
+    socketRef.current.on('response', async (data: { content: string, sessionId?: string, tokenData?: TokenData }) => {
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.content,
+        timestamp: new Date(),
+        tokenData: data.tokenData
+      };
+
+      setMessages(prev => [...prev, assistantMessage])
       setIsProcessing(false)
+      setActivityLog([]) // Clear activity log when processing completes
 
       // Save assistant response to database
       if (conversationIdRef.current) {
         try {
           await axios.post(`http://localhost:3001/api/conversations/${conversationIdRef.current}/messages`, {
             role: 'assistant',
-            content: data.content
+            content: data.content,
+            tokenData: data.tokenData
           })
         } catch (err) {
           console.error('Failed to save assistant message:', err)
@@ -456,11 +506,35 @@ function ChatView() {
         {
           id: Date.now().toString(),
           role: 'assistant',
-          content: `Error: ${data.error}`,
+          content: data.error, // Error message is already formatted with markdown
           timestamp: new Date()
         }
       ])
       setIsProcessing(false)
+      setActivityLog([]) // Clear activity log on error
+    })
+
+    socketRef.current.on('cancelled', (data: { message: string }) => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `⚠️ ${data.message}`,
+          timestamp: new Date()
+        }
+      ])
+      setIsProcessing(false)
+      setActivityLog([]) // Clear activity log on cancel
+      console.log('Command cancelled')
+    })
+
+    socketRef.current.on('activity-update', (data: { chunk: string, type: string }) => {
+      // Add new activity chunks to the log, keep last 50 lines
+      setActivityLog(prev => {
+        const newLog = [...prev, data.chunk]
+        return newLog.slice(-50) // Keep only last 50 entries
+      })
     })
 
     return () => {
@@ -478,6 +552,12 @@ function ChatView() {
       setSelectedCommandHint(null)
     }
   }, [input, selectedCommandHint])
+
+  const handleCancel = () => {
+    console.log('Cancel requested')
+    socketRef.current?.emit('cancel')
+    setIsProcessing(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -502,7 +582,8 @@ function ChatView() {
         const response = await axios.post('http://localhost:3001/api/conversations', {
           title,
           selectedFiles: selectedFilesArray,
-          model: selectedModel
+          model: selectedModel,
+          project_id: currentProject?.id
         })
         setCurrentConversationId(response.data.id)
 
@@ -667,6 +748,169 @@ function ChatView() {
     }
   }
 
+  const handleStartRename = (chatId: string, currentTitle: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingChatId(chatId)
+    setEditingChatTitle(currentTitle)
+  }
+
+  const handleSaveRename = async (chatId: string) => {
+    if (!editingChatTitle.trim()) return
+
+    try {
+      await axios.put(`http://localhost:3001/api/conversations/${chatId}`, {
+        title: editingChatTitle.trim()
+      })
+
+      // Update local state
+      setRecentChats(prev => prev.map(chat =>
+        chat.id === chatId ? { ...chat, title: editingChatTitle.trim() } : chat
+      ))
+
+      setEditingChatId(null)
+      setEditingChatTitle('')
+    } catch (err) {
+      console.error('Failed to rename chat:', err)
+    }
+  }
+
+  const handleCancelRename = () => {
+    setEditingChatId(null)
+    setEditingChatTitle('')
+  }
+
+  // Project handlers
+  const loadDefaultProject = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/projects')
+      const projects = response.data.data || []
+      if (projects.length > 0) {
+        // Check if there's a saved project ID in localStorage
+        const savedProjectId = localStorage.getItem('claudeui_selected_project_id')
+        let defaultProj: Project | undefined
+
+        // Try to find the saved project first
+        if (savedProjectId) {
+          defaultProj = projects.find((p: Project) => p.id?.toString() === savedProjectId)
+        }
+
+        // If no saved project or saved project not found, use the first project or the one marked as favorite
+        if (!defaultProj) {
+          defaultProj = projects.find((p: Project) => p.is_favorite) || projects[0]
+        }
+
+        setCurrentProject(defaultProj)
+
+        // Update CLI_ROOT to match project path
+        await axios.post('http://localhost:3001/api/settings', {
+          key: 'CLI_ROOT',
+          value: defaultProj.path
+        })
+
+        // Load conversations for the selected project
+        await loadRecentConversations(defaultProj.id)
+      }
+    } catch (err) {
+      console.error('Failed to load default project:', err)
+    }
+  }
+
+  const handleProjectSelect = async (project: Project) => {
+    setCurrentProject(project)
+
+    // Save selected project ID to localStorage
+    if (project.id) {
+      localStorage.setItem('claudeui_selected_project_id', project.id.toString())
+    }
+
+    // Clear current conversation when switching projects
+    setCurrentConversationId(null)
+    setMessages([])
+
+    // Update CLI_ROOT
+    try {
+      await axios.post('http://localhost:3001/api/settings', {
+        key: 'CLI_ROOT',
+        value: project.path
+      })
+
+      // Update project last accessed
+      await axios.patch(`http://localhost:3001/api/projects/${project.id!}`, {
+        last_accessed: new Date().toISOString()
+      })
+
+      // Reload file tree for new project
+      loadFileTree()
+
+      // Reload conversations for new project
+      await loadRecentConversations(project.id)
+
+      // Reload agents and commands for new project
+      await loadAgents()
+      await loadCommands()
+    } catch (err) {
+      console.error('Failed to switch project:', err)
+    }
+  }
+
+  const handleApplyPreset = (files: string[]) => {
+    // Add files to selected context
+    setSelectedContext(prev => {
+      const newContext = new Set(prev)
+      files.forEach(file => newContext.add(file))
+      return newContext
+    })
+  }
+
+  const toggleSkipPermissions = async () => {
+    const newValue = !skipPermissions
+    setSkipPermissions(newValue)
+
+    try {
+      await axios.put('http://localhost:3001/api/settings/SKIP_PERMISSIONS', {
+        value: newValue.toString()
+      })
+      console.log('Skip permissions updated:', newValue)
+    } catch (err) {
+      console.error('Failed to update skip permissions setting:', err)
+      // Revert on error
+      setSkipPermissions(!newValue)
+    }
+  }
+
+  // Calculate conversation token totals
+  const getConversationTokenTotals = () => {
+    return messages.reduce((totals, msg) => {
+      if (msg.tokenData) {
+        totals.inputTokens += msg.tokenData.inputTokens || 0
+        totals.outputTokens += msg.tokenData.outputTokens || 0
+        totals.cacheCreationTokens += msg.tokenData.cacheCreationTokens || 0
+        totals.cacheReadTokens += msg.tokenData.cacheReadTokens || 0
+        totals.totalCostUsd += msg.tokenData.totalCostUsd || 0
+        totals.durationMs += msg.tokenData.durationMs || 0
+      }
+      return totals
+    }, {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      totalCostUsd: 0,
+      durationMs: 0
+    })
+  }
+
+  // Format token count with commas
+  const formatTokens = (tokens: number) => tokens.toLocaleString()
+
+  // Format cost in USD
+  const formatCost = (cost: number) => `$${cost.toFixed(4)}`
+
+  // Load default project on mount
+  useEffect(() => {
+    loadDefaultProject()
+  }, [])
+
   const renderFileTree = (nodes: FileNode[], level: number = 0) => {
     return nodes.map(node => (
       <div key={node.path} style={{ marginLeft: `${level * 12}px` }}>
@@ -804,6 +1048,11 @@ function ChatView() {
             <div className="file-tree-header">
               <h3>File Explorer</h3>
               <div className="file-tree-actions">
+                <ContextPresetSelector
+                  projectId={currentProject?.id || null}
+                  onApplyPreset={handleApplyPreset}
+                  onManagePresets={() => setShowProjectManagement(true)}
+                />
                 {selectedContext.size > 0 && (
                   <button className="clear-context-btn" onClick={clearAllContext} title={`Clear ${selectedContext.size} selected`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -993,24 +1242,25 @@ function ChatView() {
                         {selectedFile.content}
                       </ReactMarkdown>
                     </div>
-                  ) : getFileExtension(selectedFile.path) === 'cs' ? (
-                    <SyntaxHighlighter
-                      language="csharp"
-                      style={vscDarkPlus}
-                      showLineNumbers={true}
-                      customStyle={{
-                        margin: 0,
-                        borderRadius: 0,
-                        background: '#1e1e1e',
-                        fontSize: '13px'
-                      }}
-                    >
-                      {selectedFile.content}
-                    </SyntaxHighlighter>
                   ) : (
-                    <pre className="code-viewer">
-                      <code>{selectedFile.content}</code>
-                    </pre>
+                    <Editor
+                      height="100%"
+                      language={getMonacoLanguage(selectedFile.path)}
+                      value={selectedFile.content}
+                      theme="vs-dark"
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: true },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        wordWrap: 'on',
+                        tabSize: 2,
+                        contextmenu: true,
+                        selectOnLineNumbers: true
+                      }}
+                    />
                   )}
                 </div>
               </>
@@ -1092,6 +1342,13 @@ function ChatView() {
           <span>New chat</span>
         </button>
 
+        <ProjectSwitcher
+          currentProject={currentProject}
+          onProjectSelect={handleProjectSelect}
+          onManageProjects={() => setShowProjectManagement(true)}
+          onNewProject={() => setShowProjectManagement(true)}
+        />
+
         <div className="sidebar-nav">
           <button className="nav-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1099,7 +1356,7 @@ function ChatView() {
             </svg>
             <span>Chats</span>
           </button>
-          <button className="nav-item">
+          <button className="nav-item" onClick={() => setShowProjectManagement(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             </svg>
@@ -1121,18 +1378,51 @@ function ChatView() {
               <div
                 key={chat.id}
                 className={`recent-item ${currentConversationId?.toString() === chat.id ? 'active' : ''}`}
-                onClick={() => handleLoadChat(chat.id)}
+                onClick={() => editingChatId !== chat.id && handleLoadChat(chat.id)}
               >
-                <span className="recent-item-title">{chat.title}</span>
-                <button
-                  className="delete-chat-btn"
-                  onClick={(e) => handleDeleteChat(chat.id, e)}
-                  title="Delete chat"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
+                {editingChatId === chat.id ? (
+                  <input
+                    type="text"
+                    className="rename-input"
+                    value={editingChatTitle}
+                    onChange={(e) => setEditingChatTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveRename(chat.id)
+                      } else if (e.key === 'Escape') {
+                        handleCancelRename()
+                      }
+                    }}
+                    onBlur={() => handleSaveRename(chat.id)}
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span className="recent-item-title">{chat.title}</span>
+                )}
+                <div className="recent-item-actions">
+                  {editingChatId !== chat.id && (
+                    <button
+                      className="rename-chat-btn"
+                      onClick={(e) => handleStartRename(chat.id, chat.title, e)}
+                      title="Rename chat"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                  )}
+                  <button
+                    className="delete-chat-btn"
+                    onClick={(e) => handleDeleteChat(chat.id, e)}
+                    title="Delete chat"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))}
             {recentChats.length === 0 && (
@@ -1200,8 +1490,47 @@ function ChatView() {
               </div>
             </div>
           ) : (
-            <div className="messages">
-              {messages.map(message => (
+            <>
+              {(() => {
+                const totals = getConversationTokenTotals();
+                return totals.inputTokens > 0 || totals.outputTokens > 0 ? (
+                  <div className="conversation-token-summary">
+                    <div className="summary-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="16 18 22 12 16 6"/>
+                        <polyline points="8 6 2 12 8 18"/>
+                      </svg>
+                      <span>{formatTokens(totals.inputTokens + totals.outputTokens)} tokens</span>
+                    </div>
+                    <div className="summary-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                      </svg>
+                      <span>{(totals.durationMs / 1000).toFixed(1)}s</span>
+                    </div>
+                    <div className="summary-item cost">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="6" x2="12" y2="12"/>
+                        <line x1="16" y1="14" x2="12" y2="12"/>
+                        <line x1="8" y1="14" x2="12" y2="12"/>
+                      </svg>
+                      <span>{formatCost(totals.totalCostUsd)}</span>
+                    </div>
+                    {totals.cacheReadTokens > 0 && (
+                      <div className="summary-item cache">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 12h4l3 9 4-18 3 9h4"/>
+                        </svg>
+                        <span>{formatTokens(totals.cacheReadTokens)} cached</span>
+                      </div>
+                    )}
+                  </div>
+                ) : null;
+              })()}
+              <div className="messages">
+                {messages.map(message => (
                 <div key={message.id} className={`message ${message.role}`}>
                   <div className="message-avatar">
                     {message.role === 'user' ? (
@@ -1220,6 +1549,48 @@ function ChatView() {
                         message.content
                       )}
                     </div>
+                    {message.role === 'assistant' && message.tokenData && (
+                      <div className="token-info-badge" title="Click for details" onClick={() => setShowTokenStats(!showTokenStats)}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="16" x2="12" y2="12"/>
+                          <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        {formatTokens((message.tokenData.inputTokens || 0) + (message.tokenData.outputTokens || 0))} tokens · {formatCost(message.tokenData.totalCostUsd || 0)}
+                        <div className="token-tooltip">
+                          <div className="token-tooltip-row">
+                            <span>Input:</span>
+                            <span>{formatTokens(message.tokenData.inputTokens || 0)}</span>
+                          </div>
+                          <div className="token-tooltip-row">
+                            <span>Output:</span>
+                            <span>{formatTokens(message.tokenData.outputTokens || 0)}</span>
+                          </div>
+                          {(message.tokenData.cacheCreationTokens || 0) > 0 && (
+                            <div className="token-tooltip-row">
+                              <span>Cache Created:</span>
+                              <span>{formatTokens(message.tokenData.cacheCreationTokens || 0)}</span>
+                            </div>
+                          )}
+                          {(message.tokenData.cacheReadTokens || 0) > 0 && (
+                            <div className="token-tooltip-row">
+                              <span>Cache Read:</span>
+                              <span>{formatTokens(message.tokenData.cacheReadTokens || 0)}</span>
+                            </div>
+                          )}
+                          <div className="token-tooltip-row total">
+                            <span>Cost:</span>
+                            <span>{formatCost(message.tokenData.totalCostUsd || 0)}</span>
+                          </div>
+                          {message.tokenData.durationMs && (
+                            <div className="token-tooltip-row">
+                              <span>Duration:</span>
+                              <span>{(message.tokenData.durationMs / 1000).toFixed(2)}s</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1234,11 +1605,29 @@ function ChatView() {
                       <span></span>
                       <span></span>
                     </div>
+                    {activityLog.length > 0 && (
+                      <div className="activity-panel">
+                        <div className="activity-header" onClick={() => setShowActivityLog(!showActivityLog)}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                          <span>Activity Log ({activityLog.length} lines)</span>
+                        </div>
+                        {showActivityLog && (
+                          <div className="activity-log">
+                            {activityLog.slice(-10).map((line, idx) => (
+                              <div key={idx} className="activity-line">{line}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
+            </>
           )}
         </div>
 
@@ -1328,23 +1717,20 @@ function ChatView() {
 
           <form onSubmit={handleSubmit}>
             <div className="input-header">
-              <button type="button" className="input-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 5v14M5 12h14" />
+              <button
+                type="button"
+                className={`permissions-toggle ${skipPermissions ? 'enabled' : 'disabled'}`}
+                onClick={toggleSkipPermissions}
+                title={skipPermissions ? 'Auto-approve enabled: Commands will run without asking' : 'Auto-approve disabled: Will ask for permission'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {skipPermissions ? (
+                    <polyline points="20 6 9 17 4 12"/>
+                  ) : (
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                  )}
                 </svg>
-              </button>
-              <button type="button" className="input-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Research
-              </button>
-              <button type="button" className="input-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="1"/>
-                  <circle cx="12" cy="5" r="1"/>
-                  <circle cx="12" cy="19" r="1"/>
-                </svg>
+                <span>{skipPermissions ? 'Auto-approve' : 'Ask permission'}</span>
               </button>
               {selectedContext.size > 0 && (
                 <button type="button" className="context-indicator" onClick={() => navigate('/files')} title={`${selectedContext.size} file(s) in context - click to manage`}>
@@ -1447,16 +1833,30 @@ function ChatView() {
                   )}
                 </div>
               )}
-              <button type="submit" disabled={!input.trim() || isProcessing || !isConnected} className="send-btn-new">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                </svg>
-              </button>
+              {isProcessing ? (
+                <button type="button" onClick={handleCancel} className="cancel-btn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  </svg>
+                  Cancel
+                </button>
+              ) : (
+                <button type="submit" disabled={!input.trim() || !isConnected} className="send-btn-new">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                  </svg>
+                </button>
+              )}
             </div>
             <div className="input-wrapper">
               <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value)
+                  // Auto-resize textarea
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -1464,7 +1864,7 @@ function ChatView() {
                   }
                 }}
                 placeholder="How can I help you today?"
-                rows={1}
+                rows={3}
                 disabled={!isConnected || isProcessing}
               />
             </div>
@@ -1502,6 +1902,14 @@ function ChatView() {
           )}
         </div>
       </div>
+
+      {showProjectManagement && (
+        <ProjectManagement
+          onClose={() => setShowProjectManagement(false)}
+          currentProjectId={currentProject?.id || null}
+          onProjectSelect={handleProjectSelect}
+        />
+      )}
     </div>
   )
 }
