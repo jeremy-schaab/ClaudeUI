@@ -29,20 +29,26 @@
 
 /* Paragraphs */
 .markdown-content p {
-  margin: 8px 0;
-  line-height: 1.6;
+  margin: 2px 0;
+  line-height: 1.5;
+}
+
+/* Remove excessive spacing from empty paragraphs */
+.markdown-content p:empty {
+  margin: 0;
+  display: none;
 }
 
 /* Lists */
 .markdown-content ul,
 .markdown-content ol {
-  margin: 8px 0;
+  margin: 3px 0;
   padding-left: 28px;
 }
 
 .markdown-content li {
-  margin: 3px 0;
-  line-height: 1.5;
+  margin: 1px 0;
+  line-height: 1.4;
 }
 
 .markdown-content ul li {

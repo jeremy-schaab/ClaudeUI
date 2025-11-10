@@ -12,6 +12,7 @@ const {
   getCliCallById,
   createConversation,
   updateConversationTitle,
+  setConversationSessionId,
   getConversation,
   getConversations,
   getVisibleConversationsOnly,
@@ -83,6 +84,7 @@ io.on('connection', (socket) => {
     console.log('Received message:', data.content);
     console.log('Context files:', data.contextFiles);
     console.log('Model:', data.model);
+    console.log('Conversation ID:', data.conversationId);
 
     const startTime = Date.now();
 
@@ -93,6 +95,20 @@ io.on('connection', (socket) => {
     const skipPermissions = getSettingValue('SKIP_PERMISSIONS', 'false') === 'true';
 
     console.log('Using CLI settings:', { executionPath, cliCommand, cliArgs, skipPermissions });
+
+    // Look up existing session ID if this is part of an ongoing conversation
+    let existingSessionId = null;
+    if (data.conversationId) {
+      try {
+        const conversation = getConversation(data.conversationId);
+        if (conversation && conversation.cli_session_id) {
+          existingSessionId = conversation.cli_session_id;
+          console.log('Continuing conversation with session ID:', existingSessionId);
+        }
+      } catch (err) {
+        console.error('Error looking up conversation session:', err);
+      }
+    }
 
     // Execute Claude CLI command with settings
     const args = cliArgs ? cliArgs.split(' ') : [];
@@ -115,6 +131,12 @@ io.on('connection', (socket) => {
     if (data.model) {
       args.push('--model', data.model);
       console.log('Adding --model flag:', data.model);
+    }
+
+    // Add session parameter if continuing existing conversation
+    if (existingSessionId) {
+      args.push('--session', existingSessionId);
+      console.log('Adding --session flag:', existingSessionId);
     }
 
     console.log('Final CLI args:', args);
@@ -221,6 +243,16 @@ io.on('connection', (socket) => {
       }
 
       if (code === 0 && actualResponse) {
+        // Save session ID to conversation if this is the first message or session ID changed
+        if (sessionId && data.conversationId) {
+          try {
+            setConversationSessionId(data.conversationId, sessionId);
+            console.log('Saved session ID to conversation:', data.conversationId, sessionId);
+          } catch (err) {
+            console.error('Failed to save session ID to conversation:', err);
+          }
+        }
+
         socket.emit('response', { content: actualResponse, sessionId: sessionId, tokenData: tokenData });
       } else {
         // Check if there's an API error in the JSON response
@@ -1019,6 +1051,89 @@ app.get('/api/slash-commands', (req, res) => {
   } catch (err) {
     console.error('Error fetching slash commands:', err);
     res.status(500).json({ error: 'Failed to fetch slash commands' });
+  }
+});
+
+// Skills endpoint - list available skills from .claude/skills
+app.get('/api/skills', (req, res) => {
+  try {
+    const rootPath = getSettingValue('CLI_ROOT', process.cwd());
+    const projectSkillsPath = path.join(rootPath, '.claude', 'skills');
+    const userSkillsPath = path.join(require('os').homedir(), '.claude', 'skills');
+
+    const skills = [];
+
+    // Helper to parse skill frontmatter from SKILL.md
+    function parseSkill(skillDir, source) {
+      try {
+        const skillFilePath = path.join(skillDir, 'SKILL.md');
+
+        // Check if SKILL.md exists
+        if (!fs.existsSync(skillFilePath)) {
+          return null;
+        }
+
+        const content = fs.readFileSync(skillFilePath, 'utf8');
+        const lines = content.split(/\r?\n/);
+
+        if (lines[0].trim() === '---') {
+          const endIndex = lines.findIndex((line, idx) => idx > 0 && line.trim() === '---');
+          if (endIndex > 0) {
+            const frontmatter = lines.slice(1, endIndex);
+            const skill = { source };
+
+            for (const line of frontmatter) {
+              const match = line.match(/^([a-zA-Z_-]+):\s*(.+)$/);
+              if (match) {
+                const [, key, value] = match;
+                skill[key] = value.trim();
+              }
+            }
+
+            if (skill.name) {
+              return skill;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Error parsing skill ${skillDir}:`, err);
+      }
+      return null;
+    }
+
+    // Read project skills (.claude/skills)
+    if (fs.existsSync(projectSkillsPath)) {
+      const dirs = fs.readdirSync(projectSkillsPath, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory());
+
+      for (const dir of dirs) {
+        const skillDirPath = path.join(projectSkillsPath, dir.name);
+        const skill = parseSkill(skillDirPath, 'project');
+        if (skill) skills.push(skill);
+      }
+    }
+
+    // Read user skills (~/.claude/skills)
+    if (fs.existsSync(userSkillsPath)) {
+      const dirs = fs.readdirSync(userSkillsPath, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory());
+
+      for (const dir of dirs) {
+        const skillDirPath = path.join(userSkillsPath, dir.name);
+        const skill = parseSkill(skillDirPath, 'user');
+        if (skill) {
+          // Only add if not already defined at project level
+          if (!skills.find(s => s.name === skill.name)) {
+            skills.push(skill);
+          }
+        }
+      }
+    }
+
+    res.json(skills);
+  } catch (err) {
+    console.error('Error fetching skills:', err);
+    res.status(500).json({ error: 'Failed to fetch skills' });
   }
 });
 

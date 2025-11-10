@@ -97,6 +97,8 @@ function ChatView() {
   const [showCommandPanel, setShowCommandPanel] = useState(false)
   const [commandFilter, setCommandFilter] = useState<string>('')
   const [selectedCommandHint, setSelectedCommandHint] = useState<{name: string, argumentHint: string, description: string} | null>(null)
+  const [availableSkills, setAvailableSkills] = useState<Array<{name: string, description: string, source: string}>>([])
+  const [showSkillPanel, setShowSkillPanel] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [fileSummary, setFileSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
@@ -208,6 +210,21 @@ function ChatView() {
 
   useEffect(() => {
     loadCommands()
+  }, [])
+
+  // Load available skills
+  const loadSkills = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/skills')
+      console.log('Available skills:', response.data)
+      setAvailableSkills(response.data)
+    } catch (err) {
+      console.error('Failed to load skills:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadSkills()
   }, [])
 
   const toggleDirectory = (dirPath: string) => {
@@ -627,7 +644,13 @@ function ChatView() {
 
     console.log('Sending message with context files:', contextFiles)
     console.log('Sending with model:', selectedModel)
-    socketRef.current?.emit('message', { content: messageContent, contextFiles, model: selectedModel })
+    console.log('Sending with conversation ID:', currentConversationId)
+    socketRef.current?.emit('message', {
+      content: messageContent,
+      contextFiles,
+      model: selectedModel,
+      conversationId: currentConversationId
+    })
     setInput('')
   }
 
@@ -1709,6 +1732,54 @@ function ChatView() {
                         </button>
                       ))
                     }
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Skills Panel */}
+          {availableSkills.length > 0 && (
+            <div className="commands-panel-wrapper">
+              <button
+                type="button"
+                className="commands-panel-toggle"
+                onClick={() => setShowSkillPanel(!showSkillPanel)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                Skills ({availableSkills.length})
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{transform: showSkillPanel ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s'}}
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {showSkillPanel && (
+                <div className="commands-panel">
+                  <div className="commands-grid">
+                    {availableSkills.map(skill => (
+                      <div
+                        key={skill.name}
+                        className="command-btn skill-item"
+                        title={skill.description}
+                      >
+                        <div className="command-btn-header">
+                          <span className="command-name">{skill.name}</span>
+                          <span className="skill-source">{skill.source}</span>
+                        </div>
+                        {skill.description && (
+                          <div className="command-description">{skill.description}</div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
