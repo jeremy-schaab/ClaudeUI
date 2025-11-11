@@ -22,3 +22,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude hooks logs
+.claude/hooks/tool_activity.jsonl
+.claude/hooks/*.log
