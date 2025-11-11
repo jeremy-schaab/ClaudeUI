@@ -151,6 +151,13 @@ io.on('connection', (socket) => {
       console.log('Adding --session flag:', existingSessionId);
     }
 
+    // Add hook settings for tool activity logging
+    const hookSettingsPath = path.join(__dirname, 'hook-settings.json');
+    if (!args.includes('--settings')) {
+      args.push('--settings', hookSettingsPath);
+      console.log('Adding --settings flag:', hookSettingsPath);
+    }
+
     console.log('Final CLI args:', args);
 
     const claude = spawn(cliCommand, args, {

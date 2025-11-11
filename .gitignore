@@ -26,3 +26,4 @@ Thumbs.db
 # Claude hooks logs
 .claude/hooks/tool_activity.jsonl
 .claude/hooks/*.log
+tool_logs/

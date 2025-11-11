@@ -26,13 +26,14 @@ def get_log_file(project_dir):
         project_dir: Full path to the project directory
 
     Returns:
-        Path to the log file in ~/.claude/tool_logs/<project-name>/activity.jsonl
+        Path to the log file in ClaudeUI/tool_logs/<project-name>/activity.jsonl
     """
-    # Get user home directory
-    home_dir = Path.home()
+    # Get ClaudeUI base directory (this script is in .claude/hooks/, go up 2 levels)
+    script_dir = Path(__file__).parent  # .claude/hooks/
+    claude_ui_base = script_dir.parent.parent  # Go up to ClaudeUI root
 
-    # Create base logs directory
-    logs_base = home_dir / ".claude" / "tool_logs"
+    # Create base logs directory in ClaudeUI
+    logs_base = claude_ui_base / "tool_logs"
 
     # Extract project name from project_dir
     if project_dir:
@@ -64,10 +65,14 @@ def log_tool_activity(phase):
         # Parse tool data
         tool_data = json.loads(input_data)
 
-        # Extract project directory from session info
+        # Extract project directory from session info or use current working directory
         project_dir = None
         if "session_info" in tool_data:
             project_dir = tool_data["session_info"].get("project_dir")
+
+        # Fallback to current working directory if project_dir not in session_info
+        if not project_dir:
+            project_dir = os.getcwd()
 
         # Create log entry
         log_entry = {

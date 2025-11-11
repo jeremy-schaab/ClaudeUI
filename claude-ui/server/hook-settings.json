@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python C:\\Users\\jschaab\\source\\repos\\GitHub\\ClaudeUI\\.claude\\hooks\\tool_logger.py pre",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python C:\\Users\\jschaab\\source\\repos\\GitHub\\ClaudeUI\\.claude\\hooks\\tool_logger.py post",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
