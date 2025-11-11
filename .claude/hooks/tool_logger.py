@@ -2,8 +2,9 @@
 """
 Tool Activity Logger Hook
 
-Logs all tool usage to a JSONL file for monitoring and debugging.
-This hook captures both PreToolUse and PostToolUse events.
+Logs all tool usage to project-specific JSONL files for monitoring and debugging.
+This hook captures both PreToolUse and PostToolUse events and organizes logs
+by project name in ~/.claude/tool_logs/
 
 Usage:
   python tool_logger.py pre   # Log before tool execution
@@ -12,19 +13,43 @@ Usage:
 
 import json
 import sys
+import os
 from pathlib import Path
 from datetime import datetime
 
 
-def get_log_file():
-    """Get the tool activity log file path"""
-    hooks_dir = Path(__file__).parent
-    return hooks_dir / "tool_activity.jsonl"
+def get_log_file(project_dir):
+    """
+    Get the tool activity log file path for a specific project
+
+    Args:
+        project_dir: Full path to the project directory
+
+    Returns:
+        Path to the log file in ~/.claude/tool_logs/<project-name>/activity.jsonl
+    """
+    # Get user home directory
+    home_dir = Path.home()
+
+    # Create base logs directory
+    logs_base = home_dir / ".claude" / "tool_logs"
+
+    # Extract project name from project_dir
+    if project_dir:
+        project_name = Path(project_dir).name
+    else:
+        project_name = "unknown"
+
+    # Create project-specific log directory
+    project_log_dir = logs_base / project_name
+    project_log_dir.mkdir(parents=True, exist_ok=True)
+
+    return project_log_dir / "activity.jsonl"
 
 
 def log_tool_activity(phase):
     """
-    Log tool activity to JSONL file
+    Log tool activity to project-specific JSONL file
 
     Args:
         phase: "pre" or "post" indicating before/after tool execution
@@ -39,6 +64,11 @@ def log_tool_activity(phase):
         # Parse tool data
         tool_data = json.loads(input_data)
 
+        # Extract project directory from session info
+        project_dir = None
+        if "session_info" in tool_data:
+            project_dir = tool_data["session_info"].get("project_dir")
+
         # Create log entry
         log_entry = {
             "timestamp": datetime.now().isoformat(),
@@ -51,12 +81,14 @@ def log_tool_activity(phase):
         if phase == "post":
             log_entry["tool_response"] = tool_data.get("tool_response")
 
-        # Add session info if available
-        if "session_info" in tool_data:
-            log_entry["project_dir"] = tool_data["session_info"].get("project_dir")
+        # Add project directory to log entry
+        if project_dir:
+            log_entry["project_dir"] = project_dir
+
+        # Get project-specific log file
+        log_file = get_log_file(project_dir)
 
         # Append to log file (JSONL format - one JSON object per line)
-        log_file = get_log_file()
         with open(log_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 

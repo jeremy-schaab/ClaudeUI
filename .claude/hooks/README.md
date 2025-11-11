@@ -1,6 +1,6 @@
 # Claude CLI Tool Activity Logger
 
-This directory contains a hook system for logging all tool usage when Claude CLI executes commands. This provides visibility into Claude's tool calls for monitoring, debugging, and auditing purposes.
+This directory contains a globally-installed hook system for logging all tool usage when Claude CLI executes commands. This provides visibility into Claude's tool calls for monitoring, debugging, and auditing purposes across all projects.
 
 ## Overview
 
@@ -8,17 +8,38 @@ The tool activity logger captures two events for every tool call:
 - **PreToolUse**: Logged before the tool executes (captures tool name and input parameters)
 - **PostToolUse**: Logged after the tool completes (captures tool response and output)
 
-All activity is logged to `tool_activity.jsonl` in JSON Lines format (one JSON object per line).
+**Key Features:**
+- **Global Installation**: Works across all projects automatically
+- **Project-Specific Logs**: Each project gets its own log directory organized by project name
+- **Centralized Storage**: All logs stored in `~/.claude/tool_logs/<project-name>/activity.jsonl`
 
 ## Files
 
-- **tool_logger.py**: Python script that receives hook events from Claude CLI and writes log entries
-- **tool_activity.jsonl**: Log file containing all tool activity (gitignored)
+### Project-Local Files (This Directory)
+- **tool_logger.py**: Reference copy of the Python hook script
 - **README.md**: This documentation file
+
+### Global Installation Files
+- **~/.claude/hooks/tool_logger.py**: The active hook script used by Claude CLI
+- **~/.claude/settings.json**: Global hook configuration
+- **~/.claude/tool_logs/**: Directory containing all project-specific logs
+
+## Log Organization
+
+Logs are organized by project name:
+```
+~/.claude/tool_logs/
+├── ClaudeUI/
+│   └── activity.jsonl
+├── MyOtherProject/
+│   └── activity.jsonl
+└── unknown/
+    └── activity.jsonl  (for commands run outside projects)
+```
 
 ## Configuration
 
-The hooks are configured in `.claude/settings.json` at the project root:
+The hooks are configured globally in `~/.claude/settings.json`:
 
 ```json
 {
@@ -29,7 +50,7 @@ The hooks are configured in `.claude/settings.json` at the project root:
         "hooks": [
           {
             "type": "command",
-            "command": "python C:\\Users\\jschaab\\source\\repos\\GitHub\\ClaudeUI\\.claude\\hooks\\tool_logger.py pre",
+            "command": "python C:\\Users\\jschaab\\.claude\\hooks\\tool_logger.py pre",
             "timeout": 10
           }
         ]
@@ -41,7 +62,7 @@ The hooks are configured in `.claude/settings.json` at the project root:
         "hooks": [
           {
             "type": "command",
-            "command": "python C:\\Users\\jschaab\\source\\repos\\GitHub\\ClaudeUI\\.claude\\hooks\\tool_logger.py post",
+            "command": "python C:\\Users\\jschaab\\.claude\\hooks\\tool_logger.py post",
             "timeout": 10
           }
         ]
@@ -50,6 +71,20 @@ The hooks are configured in `.claude/settings.json` at the project root:
   }
 }
 ```
+
+## Installation
+
+The hook is already installed globally. To install on another machine or update:
+
+1. Copy the hook script to the global hooks directory:
+   ```bash
+   mkdir -p ~/.claude/hooks
+   cp .claude/hooks/tool_logger.py ~/.claude/hooks/
+   ```
+
+2. Update `~/.claude/settings.json` to add the hooks configuration shown above.
+
+3. The hook will now run automatically for all Claude CLI commands across all projects.
 
 ## Log Format
 
@@ -88,9 +123,13 @@ Each log entry is a JSON object with the following structure:
 
 ```python
 import json
+from pathlib import Path
+
+# Get log file for a specific project
+log_file = Path.home() / ".claude" / "tool_logs" / "ClaudeUI" / "activity.jsonl"
 
 # Read all log entries
-with open('.claude/hooks/tool_activity.jsonl', 'r', encoding='utf-8') as f:
+with open(log_file, 'r', encoding='utf-8') as f:
     entries = [json.loads(line) for line in f]
 
 # Filter by tool name
@@ -103,29 +142,40 @@ pre_entries = [e for e in entries if e['phase'] == 'pre']
 from collections import Counter
 tool_counts = Counter(e['tool_name'] for e in entries)
 print(tool_counts.most_common(10))
+
+# Query across all projects
+logs_dir = Path.home() / ".claude" / "tool_logs"
+all_entries = []
+for project_dir in logs_dir.iterdir():
+    if project_dir.is_dir():
+        log_file = project_dir / "activity.jsonl"
+        if log_file.exists():
+            with open(log_file, 'r', encoding='utf-8') as f:
+                all_entries.extend([json.loads(line) for line in f])
 ```
 
 ### Using jq (if available)
 
 ```bash
-# Get all Read tool calls
-jq 'select(.tool_name == "Read")' .claude/hooks/tool_activity.jsonl
+# Get all Read tool calls for ClaudeUI project
+jq 'select(.tool_name == "Read")' ~/.claude/tool_logs/ClaudeUI/activity.jsonl
 
-# Count tool usage
-jq -r '.tool_name' .claude/hooks/tool_activity.jsonl | sort | uniq -c | sort -rn
+# Count tool usage for ClaudeUI
+jq -r '.tool_name' ~/.claude/tool_logs/ClaudeUI/activity.jsonl | sort | uniq -c | sort -rn
 
-# Get all errors (entries with tool_response containing "error")
-jq 'select(.tool_response | contains("error"))' .claude/hooks/tool_activity.jsonl
+# Get all errors across all projects
+find ~/.claude/tool_logs -name "activity.jsonl" -exec jq 'select(.tool_response | tostring | contains("error"))' {} \;
 
-# Get activity from the last hour
-jq --arg cutoff $(date -u -d '1 hour ago' -Iseconds) 'select(.timestamp > $cutoff)' .claude/hooks/tool_activity.jsonl
+# Get activity from the last hour for all projects
+find ~/.claude/tool_logs -name "activity.jsonl" -exec jq --arg cutoff $(date -u -d '1 hour ago' -Iseconds) 'select(.timestamp > $cutoff)' {} \;
 ```
 
 ### Using PowerShell
 
 ```powershell
-# Read all entries
-$entries = Get-Content .claude\hooks\tool_activity.jsonl | ForEach-Object { $_ | ConvertFrom-Json }
+# Read all entries for ClaudeUI project
+$logFile = "$env:USERPROFILE\.claude\tool_logs\ClaudeUI\activity.jsonl"
+$entries = Get-Content $logFile | ForEach-Object { $_ | ConvertFrom-Json }
 
 # Count tool usage
 $entries | Group-Object tool_name | Sort-Object Count -Descending | Select-Object Name, Count
@@ -136,6 +186,15 @@ $entries | Where-Object { $_.tool_name -eq 'Read' }
 # Get entries from the last hour
 $cutoff = (Get-Date).AddHours(-1)
 $entries | Where-Object { [datetime]$_.timestamp -gt $cutoff }
+
+# Query across all projects
+$allEntries = @()
+Get-ChildItem "$env:USERPROFILE\.claude\tool_logs" -Directory | ForEach-Object {
+    $logFile = Join-Path $_.FullName "activity.jsonl"
+    if (Test-Path $logFile) {
+        $allEntries += Get-Content $logFile | ForEach-Object { $_ | ConvertFrom-Json }
+    }
+}
 ```
 
 ## How It Works
@@ -163,10 +222,43 @@ The hook script is designed to fail gracefully:
 
 ## Maintenance
 
-The `tool_activity.jsonl` file grows over time. You may want to periodically:
-- Archive old logs: `mv tool_activity.jsonl tool_activity_$(date +%Y%m%d).jsonl`
-- Compress archives: `gzip tool_activity_*.jsonl`
-- Delete old archives after analysis
+Log files grow over time. You may want to periodically:
+
+### Archive old logs
+```bash
+# Archive a specific project's logs
+cd ~/.claude/tool_logs/ClaudeUI
+mv activity.jsonl activity_$(date +%Y%m%d).jsonl
+
+# Compress archives
+gzip activity_*.jsonl
+```
+
+### Clean up old logs
+```bash
+# Delete logs older than 30 days for all projects
+find ~/.claude/tool_logs -name "activity_*.jsonl.gz" -mtime +30 -delete
+
+# View disk usage by project
+du -sh ~/.claude/tool_logs/*
+```
+
+### PowerShell maintenance
+```powershell
+# Archive ClaudeUI logs
+$date = Get-Date -Format "yyyyMMdd"
+Move-Item "$env:USERPROFILE\.claude\tool_logs\ClaudeUI\activity.jsonl" `
+          "$env:USERPROFILE\.claude\tool_logs\ClaudeUI\activity_$date.jsonl"
+
+# View disk usage by project
+Get-ChildItem "$env:USERPROFILE\.claude\tool_logs" -Directory | ForEach-Object {
+    $size = (Get-ChildItem $_.FullName -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+    [PSCustomObject]@{
+        Project = $_.Name
+        SizeMB = [math]::Round($size, 2)
+    }
+}
+```
 
 ## Privacy Note
 
@@ -176,4 +268,4 @@ Tool activity logs may contain sensitive information including:
 - API responses
 - Code snippets
 
-The log file is gitignored by default. Be careful when sharing or analyzing logs.
+The global log directory (`~/.claude/tool_logs/`) is separate from project files and not committed to git. Be careful when sharing or analyzing logs.
