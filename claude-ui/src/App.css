@@ -1021,10 +1021,23 @@ body {
   background-color: #fafaf9;
 }
 
+.file-viewer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 .file-viewer-path {
   font-size: 13px;
   font-weight: 500;
   color: #1c1917;
+  font-family: 'Courier New', monospace;
+}
+
+.file-viewer-mtime {
+  font-size: 11px;
+  color: #78716f;
   font-family: 'Courier New', monospace;
 }
 

@@ -613,7 +613,7 @@ function saveMessage(conversationId, role, content, tokenData = {}) {
       totalCostUsd = 0,
       modelUsage = null,
       durationMs = 0
-    } = tokenData;
+    } = tokenData || {};
 
     const result = insertMessage.run(
       conversationId,

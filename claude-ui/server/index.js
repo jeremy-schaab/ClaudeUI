@@ -914,7 +914,13 @@ app.get('/api/files/content', (req, res) => {
     }
 
     const content = fs.readFileSync(fullPath, 'utf8');
-    res.json({ path: filePath, content });
+    const stats = fs.statSync(fullPath);
+    res.json({
+      path: filePath,
+      content,
+      mtime: stats.mtime,
+      size: stats.size
+    });
   } catch (err) {
     console.error('Error reading file:', err);
     res.status(500).json({ error: 'Failed to read file' });

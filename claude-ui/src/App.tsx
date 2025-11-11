@@ -83,12 +83,12 @@ function ChatView() {
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
-  const [selectedFile, setSelectedFile] = useState<{ path: string, content: string } | null>(null)
+  const [selectedFile, setSelectedFile] = useState<{ path: string, content: string, mtime?: string, size?: number } | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [showDiff, setShowDiff] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [selectedContext, setSelectedContext] = useState<Set<string>>(new Set())
-  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5-20250929')
+  const [selectedModel, setSelectedModel] = useState<string>('claude-haiku-4-5-20251001')
   const [showModelDropdown, setShowModelDropdown] = useState(false)
   const [availableAgents, setAvailableAgents] = useState<Array<{name: string, description: string, source: string}>>([])
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
@@ -246,7 +246,12 @@ function ChatView() {
       const response = await axios.get('http://localhost:3001/api/files/content', {
         params: { path: filePath }
       })
-      setSelectedFile({ path: filePath, content: response.data.content })
+      setSelectedFile({
+        path: filePath,
+        content: response.data.content,
+        mtime: response.data.mtime,
+        size: response.data.size
+      })
       setEditedContent(response.data.content)
       setIsEditMode(false)
       setShowDiff(false)
@@ -1119,7 +1124,15 @@ function ChatView() {
             {selectedFile ? (
               <>
                 <div className="file-viewer-header">
-                  <span className="file-viewer-path">{selectedFile.path}</span>
+                  <div className="file-viewer-info">
+                    <span className="file-viewer-path">{selectedFile.path}</span>
+                    {selectedFile.mtime && (
+                      <span className="file-viewer-mtime">
+                        Modified: {new Date(selectedFile.mtime).toLocaleString()}
+                        {selectedFile.size !== undefined && ` • ${(selectedFile.size / 1024).toFixed(2)} KB`}
+                      </span>
+                    )}
+                  </div>
                   <div className="file-viewer-actions">
                     {!isEditMode ? (
                       <>
