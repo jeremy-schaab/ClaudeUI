@@ -104,6 +104,8 @@ function ChatView() {
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [activityLog, setActivityLog] = useState<string[]>([])
   const [showActivityLog, setShowActivityLog] = useState(true)
+  const [toolActivity, setToolActivity] = useState<Array<{message: string, timestamp: string}>>([])
+  const [showToolActivity, setShowToolActivity] = useState(true)
   const [showHtmlPreview, setShowHtmlPreview] = useState(false)
   const [processedHtml, setProcessedHtml] = useState<string | null>(null)
   const [isLoadingCss, setIsLoadingCss] = useState(false)
@@ -501,7 +503,7 @@ function ChatView() {
 
       setMessages(prev => [...prev, assistantMessage])
       setIsProcessing(false)
-      setActivityLog([]) // Clear activity log when processing completes
+      // Keep activity log visible after processing completes
 
       // Save assistant response to database
       if (conversationIdRef.current) {
@@ -528,7 +530,7 @@ function ChatView() {
         }
       ])
       setIsProcessing(false)
-      setActivityLog([]) // Clear activity log on error
+      // Keep activity log visible after error
     })
 
     socketRef.current.on('cancelled', (data: { message: string }) => {
@@ -542,17 +544,26 @@ function ChatView() {
         }
       ])
       setIsProcessing(false)
-      setActivityLog([]) // Clear activity log on cancel
+      // Keep activity log visible after cancel
       console.log('Command cancelled')
     })
 
-    socketRef.current.on('activity-update', (data: { chunk: string, type: string }) => {
-      // Add new activity chunks to the log, keep last 50 lines
-      setActivityLog(prev => {
-        const newLog = [...prev, data.chunk]
-        return newLog.slice(-50) // Keep only last 50 entries
-      })
-    })
+    // Activity logging disabled
+    // socketRef.current.on('activity-update', (data: { chunk: string, type: string }) => {
+    //   setActivityLog(prev => {
+    //     const newLog = [...prev, data.chunk]
+    //     return newLog.slice(-50)
+    //   })
+    // })
+
+    // Listen for tool activity events
+    socketRef.current.on('tool-activity', (data: { message: string, timestamp: string }) => {
+      console.log('[TOOL] Tool activity:', data);
+      setToolActivity(prev => {
+        const newLog = [...prev, data];
+        return newLog.slice(-20); // Keep last 20 tool activities
+      });
+    });
 
     return () => {
       socketRef.current?.disconnect()
@@ -590,6 +601,7 @@ function ChatView() {
     setMessages(prev => [...prev, userMessage])
     setIsProcessing(true)
     setSelectedCommandHint(null) // Clear hint on submit
+    setToolActivity([]) // Clear tool activity on new message
 
     // Create conversation if this is the first message
     if (!currentConversationId) {
@@ -1628,18 +1640,21 @@ function ChatView() {
                       <span></span>
                       <span></span>
                     </div>
-                    {activityLog.length > 0 && (
-                      <div className="activity-panel">
-                        <div className="activity-header" onClick={() => setShowActivityLog(!showActivityLog)}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="9 18 15 12 9 6"/>
+                    {toolActivity.length > 0 && (
+                      <div className="tool-activity-feed">
+                        <div className="tool-activity-header" onClick={() => setShowToolActivity(!showToolActivity)}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points={showToolActivity ? "6 9 12 15 18 9" : "9 18 15 12 9 6"}/>
                           </svg>
-                          <span>Activity Log ({activityLog.length} lines)</span>
+                          <span>Tool Activity ({toolActivity.length})</span>
                         </div>
-                        {showActivityLog && (
-                          <div className="activity-log">
-                            {activityLog.slice(-10).map((line, idx) => (
-                              <div key={idx} className="activity-line">{line}</div>
+                        {showToolActivity && (
+                          <div className="tool-activity-list">
+                            {toolActivity.map((activity, idx) => (
+                              <div key={idx} className="tool-activity-item">
+                                <span className="activity-icon">🔧</span>
+                                <span className="activity-message">{activity.message}</span>
+                              </div>
                             ))}
                           </div>
                         )}

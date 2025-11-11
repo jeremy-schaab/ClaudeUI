@@ -113,12 +113,24 @@ io.on('connection', (socket) => {
     // Execute Claude CLI command with settings
     const args = cliArgs ? cliArgs.split(' ') : [];
 
-    // Add --print and --output-format json for structured output with session ID
+    // Add --print for real-time streaming output with stream-json format
     if (!args.includes('--print')) {
       args.push('--print');
     }
+
+    // Add stream-json output format for real-time streaming with session ID capture
     if (!args.includes('--output-format')) {
-      args.push('--output-format', 'json');
+      args.push('--output-format', 'stream-json');
+    }
+
+    // Add --verbose required for stream-json format
+    if (!args.includes('--verbose')) {
+      args.push('--verbose');
+    }
+
+    // Add --debug for tool activity logging
+    if (!args.includes('--debug')) {
+      args.push('--debug', 'tool');
     }
 
     // Add auto-approval flag if enabled
@@ -168,18 +180,64 @@ io.on('connection', (socket) => {
     claude.stdout.on('data', (chunk) => {
       const text = chunk.toString();
       response += text;
-      console.log('Claude output:', text);
 
-      // Emit real-time activity updates to frontend
-      socket.emit('activity-update', { chunk: text, type: 'stdout' });
+      // Parse stream-json format
+      const lines = text.split('\n').filter(line => line.trim());
+      lines.forEach(line => {
+        try {
+          const jsonData = JSON.parse(line);
+
+          // Extract session ID from init message
+          if (jsonData.type === 'system' && jsonData.subtype === 'init' && jsonData.session_id) {
+            sessionId = jsonData.session_id;
+            console.log('Captured session ID from init:', sessionId);
+          }
+
+          // Extract session ID from assistant messages
+          if (jsonData.session_id && !sessionId) {
+            sessionId = jsonData.session_id;
+            console.log('Captured session ID:', sessionId);
+          }
+
+          // Extract response text from assistant messages
+          if (jsonData.type === 'assistant' && jsonData.message) {
+            const content = jsonData.message.content || [];
+            content.forEach(item => {
+              if (item.type === 'text' && item.text) {
+                console.log('Claude response text:', item.text);
+                socket.emit('response', item.text);
+              }
+            });
+          }
+
+          // Handle result message
+          if (jsonData.type === 'result' && jsonData.result) {
+            console.log('Claude result:', jsonData.result);
+          }
+        } catch (err) {
+          // Not JSON, might be plain text fallback
+          console.log('Claude output (non-JSON):', text);
+        }
+      });
     });
 
     claude.stderr.on('data', (chunk) => {
-      errorOutput += chunk.toString();
-      console.error('Claude error:', chunk.toString());
+      const text = chunk.toString();
+      errorOutput += text;
 
-      // Emit real-time activity updates to frontend
-      socket.emit('activity-update', { chunk: chunk.toString(), type: 'stderr' });
+      // Parse debug output for tool activity
+      const lines = text.split('\n');
+      lines.forEach(line => {
+        // Look for tool usage patterns in debug output
+        // Example patterns: "[tool] Read file: /path/to/file" or similar
+        if (line.includes('[tool]') || line.includes('Tool:') || line.includes('Executing')) {
+          console.log('Tool activity detected:', line);
+          socket.emit('tool-activity', {
+            message: line.trim(),
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
     });
 
     claude.on('close', (code) => {
@@ -189,36 +247,48 @@ io.on('connection', (socket) => {
       // Remove from active processes
       activeProcesses.delete(socket.id);
 
-      let actualResponse = response.trim();
+      let actualResponse = '';
       let tokenData = null;
 
-      // Parse JSON response to extract session_id, result, and token usage
+      // Parse stream-json format to extract result and token usage
       try {
-        const jsonResponse = JSON.parse(response);
-        if (jsonResponse.session_id) {
-          sessionId = jsonResponse.session_id;
-          console.log('Captured session ID:', sessionId);
-        }
-        if (jsonResponse.result) {
-          actualResponse = jsonResponse.result;
-        }
+        const lines = response.split('\n').filter(line => line.trim());
+        lines.forEach(line => {
+          try {
+            const jsonData = JSON.parse(line);
 
-        // Extract token usage data
-        if (jsonResponse.usage || jsonResponse.modelUsage || jsonResponse.total_cost_usd) {
-          tokenData = {
-            inputTokens: jsonResponse.usage?.input_tokens || 0,
-            outputTokens: jsonResponse.usage?.output_tokens || 0,
-            cacheCreationTokens: jsonResponse.usage?.cache_creation_input_tokens || 0,
-            cacheReadTokens: jsonResponse.usage?.cache_read_input_tokens || 0,
-            totalCostUsd: jsonResponse.total_cost_usd || 0,
-            modelUsage: jsonResponse.modelUsage || null,
-            durationMs: jsonResponse.duration_ms || durationMs
-          };
-          console.log('Token data:', tokenData);
+            // Extract result text from result message
+            if (jsonData.type === 'result' && jsonData.result) {
+              actualResponse = jsonData.result;
+            }
+
+            // Extract token usage data from result message
+            if (jsonData.type === 'result' && (jsonData.usage || jsonData.modelUsage || jsonData.total_cost_usd)) {
+              tokenData = {
+                inputTokens: jsonData.usage?.input_tokens || 0,
+                outputTokens: jsonData.usage?.output_tokens || 0,
+                cacheCreationTokens: jsonData.usage?.cache_creation_input_tokens || 0,
+                cacheReadTokens: jsonData.usage?.cache_read_input_tokens || 0,
+                totalCostUsd: jsonData.total_cost_usd || 0,
+                modelUsage: jsonData.modelUsage || null,
+                durationMs: jsonData.duration_ms || durationMs
+              };
+              console.log('Token data:', tokenData);
+            }
+          } catch (lineErr) {
+            // Skip non-JSON lines
+          }
+        });
+
+        // If no result found in stream, use fallback
+        if (!actualResponse) {
+          actualResponse = response.trim();
+          console.log('No result message found, using full response');
         }
       } catch (parseErr) {
         // If not JSON, use response as-is
-        console.log('Response is not JSON, using as-is');
+        console.log('Error parsing stream-json response:', parseErr);
+        actualResponse = response.trim();
       }
 
       // Log to database
