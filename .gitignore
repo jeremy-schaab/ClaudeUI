@@ -1,0 +1,24 @@
+# Screenshots
+screenshot-*.png
+admin-screenshot.png
+
+# Node modules
+node_modules/
+
+# Database
+*.db
+*.db-journal
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
